@@ -1,0 +1,270 @@
+/* ReAtrium Hybrid Employee Portal Styles */
+:root {
+	--ra-bg: #f4f6f9;
+	--ra-surface: #ffffff;
+	--ra-border: #e2e8f0;
+	--ra-text: #0f172a;
+	--ra-muted: #64748b;
+	--ra-accent: #2563eb;
+	--ra-accent-soft: #eff6ff;
+	--ra-ok-bg: #dcfce7;
+	--ra-ok-fg: #166534;
+	--ra-warn-bg: #fef3c7;
+	--ra-warn-fg: #92400e;
+}
+
+* { box-sizing: border-box; }
+
+body.reatrium-body {
+	margin: 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	background: var(--ra-bg);
+	color: var(--ra-text);
+}
+
+.reatrium-shell {
+	display: flex;
+	min-height: 100vh;
+}
+
+.reatrium-sidebar {
+	width: 260px;
+	background: var(--ra-surface);
+	border-right: 1px solid var(--ra-border);
+	display: flex;
+	flex-direction: column;
+	padding: 20px 16px;
+}
+
+.reatrium-brand {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--ra-border);
+	margin-bottom: 16px;
+}
+
+.reatrium-brand-mark {
+	width: 36px;
+	height: 36px;
+	border-radius: 8px;
+	background: var(--ra-accent);
+	color: #fff;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+}
+
+.reatrium-brand small {
+	display: block;
+	color: var(--ra-muted);
+	font-size: 12px;
+}
+
+.reatrium-nav {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1;
+}
+
+.reatrium-nav-link {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	color: var(--ra-text);
+	text-decoration: none;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.reatrium-nav-link:hover {
+	background: var(--ra-bg);
+}
+
+.reatrium-nav-link.is-active {
+	background: var(--ra-accent-soft);
+	color: var(--ra-accent);
+}
+
+.reatrium-sidebar-footer {
+	border-top: 1px solid var(--ra-border);
+	padding-top: 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+}
+
+.reatrium-footer-link {
+	color: var(--ra-muted);
+	text-decoration: none;
+}
+
+.reatrium-footer-link:hover { color: var(--ra-text); }
+
+.reatrium-user-pill {
+	margin-top: 6px;
+	padding: 8px 10px;
+	background: var(--ra-bg);
+	border-radius: 8px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.reatrium-main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.reatrium-topbar {
+	background: var(--ra-surface);
+	border-bottom: 1px solid var(--ra-border);
+	padding: 16px 28px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.reatrium-topbar h1 {
+	margin: 0;
+	font-size: 20px;
+}
+
+.reatrium-status-badges {
+	display: flex;
+	gap: 8px;
+}
+
+.reatrium-badge {
+	font-size: 12px;
+	font-weight: 600;
+	padding: 4px 10px;
+	border-radius: 999px;
+}
+
+.reatrium-badge.is-ok { background: var(--ra-ok-bg); color: var(--ra-ok-fg); }
+.reatrium-badge.is-warn { background: var(--ra-warn-bg); color: var(--ra-warn-fg); }
+
+.reatrium-content {
+	padding: 28px;
+	max-width: 1100px;
+}
+
+.reatrium-card {
+	background: var(--ra-surface);
+	border: 1px solid var(--ra-border);
+	border-radius: 10px;
+	padding: 20px 24px;
+	margin-bottom: 20px;
+}
+
+.reatrium-card h2, .reatrium-card h3 { margin-top: 0; }
+.reatrium-muted { color: var(--ra-muted); font-size: 13px; }
+
+.reatrium-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+
+.reatrium-ai-box {
+	background: var(--ra-accent-soft);
+	border-left: 3px solid var(--ra-accent);
+	border-radius: 6px;
+	padding: 12px 16px;
+	font-size: 14px;
+}
+
+.reatrium-inline-form {
+	display: flex;
+	gap: 10px;
+}
+
+.reatrium-inline-form input[type="text"] {
+	flex: 1;
+	padding: 9px 12px;
+	border: 1px solid var(--ra-border);
+	border-radius: 8px;
+	font-size: 14px;
+}
+
+.reatrium-field {
+	margin-bottom: 12px;
+}
+
+.reatrium-field label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.reatrium-field input[type="text"],
+.reatrium-field select,
+.reatrium-field textarea {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--ra-border);
+	border-radius: 8px;
+	font-size: 14px;
+	font-family: inherit;
+}
+
+.reatrium-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 14px;
+	border-radius: 8px;
+	border: 1px solid var(--ra-border);
+	background: var(--ra-surface);
+	color: var(--ra-text);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.reatrium-btn-primary {
+	background: var(--ra-accent);
+	border-color: var(--ra-accent);
+	color: #fff;
+}
+
+.reatrium-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 16px;
+}
+
+.reatrium-list-item {
+	padding: 14px 0;
+	border-top: 1px solid var(--ra-border);
+}
+
+.reatrium-list-item:first-of-type { border-top: 0; }
+
+.reatrium-alert {
+	padding: 12px 16px;
+	border-radius: 8px;
+	margin-bottom: 16px;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.reatrium-alert.is-ok { background: var(--ra-ok-bg); color: var(--ra-ok-fg); }
+
+@media (max-width: 768px) {
+	.reatrium-shell { flex-direction: column; }
+	.reatrium-sidebar { width: 100%; border-right: 0; border-bottom: 1px solid var(--ra-border); }
+}
+

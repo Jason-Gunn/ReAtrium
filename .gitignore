@@ -1,0 +1,22 @@
+# ReAtrium — AI-Forward SMB Intranet for WordPress 7+
+
+_resources/
+wp-config.php
+wp-config-local.php
+.env
+.env.*
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.vscode/
+.idea/
+*.code-workspace
+
+node_modules/
+vendor/
+*.log
+error_log
+tests/coverage/
+.phpunit.result.cache
