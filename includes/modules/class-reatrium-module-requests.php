@@ -124,7 +124,7 @@ class ReAtrium_Module_Requests {
 					update_post_meta( $post_id, '_reatrium_request_dept', $dept );
 					update_post_meta( $post_id, '_reatrium_request_status', 'open' );
 					update_post_meta( $post_id, '_reatrium_ai_triage', $triage['triage_notes'] );
-					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'req_submitted', home_url( '/intranet/requests/' ) ) );
+					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'req_submitted', ReAtrium_Portal::portal_url( 'requests' ) ) );
 					exit;
 				}
 			}
@@ -135,7 +135,7 @@ class ReAtrium_Module_Requests {
 			$status = sanitize_key( wp_unslash( $_POST['new_status'] ?? '' ) );
 			if ( $req_id > 0 && get_post_type( $req_id ) === 'reatrium_request' && in_array( $status, [ 'open', 'in_progress', 'resolved' ], true ) ) {
 				update_post_meta( $req_id, '_reatrium_request_status', $status );
-				wp_safe_redirect( add_query_arg( 'reatrium_notice', 'req_updated', home_url( '/intranet/requests/' ) ) );
+				wp_safe_redirect( add_query_arg( 'reatrium_notice', 'req_updated', ReAtrium_Portal::portal_url( 'requests' ) ) );
 				exit;
 			}
 		}

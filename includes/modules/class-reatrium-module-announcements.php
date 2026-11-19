@@ -155,7 +155,7 @@ class ReAtrium_Module_Announcements {
 				] );
 				if ( $post_id && ! is_wp_error( $post_id ) ) {
 					update_post_meta( $post_id, '_reatrium_pinned', $pinned );
-					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'announce_published', home_url( '/intranet/' ) ) );
+					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'announce_published', ReAtrium_Portal::portal_url( 'home' ) ) );
 					exit;
 				}
 			}

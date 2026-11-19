@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</p>
 
 	<p>
-		<a class="button button-primary" href="<?php echo esc_url( home_url( '/intranet/' ) ); ?>" target="_blank">
-			<?php esc_html_e( 'Open Employee Portal (/intranet/)', 'reatrium' ); ?>
+		<a class="button button-primary" href="<?php echo esc_url( ReAtrium_Portal::portal_url() ); ?>" target="_blank">
+			<?php esc_html_e( 'Open Employee Portal', 'reatrium' ); ?>
 		</a>
 		<?php if ( current_user_can( 'manage_options' ) ) : ?>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=reatrium-setup' ) ); ?>">

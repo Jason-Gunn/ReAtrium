@@ -22,10 +22,11 @@ $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
 	</p>
 
 	<?php if ( ! empty( $saved ) ) : ?>
+		<?php $portal_url = ReAtrium_Portal::portal_url(); ?>
 		<div class="notice notice-success is-dismissible">
 			<p>
 				<?php esc_html_e( 'Setup saved! Your employee portal is live:', 'reatrium' ); ?>
-				<a href="<?php echo esc_url( home_url( '/intranet/' ) ); ?>" target="_blank"><?php echo esc_html( home_url( '/intranet/' ) ); ?></a>
+				<a href="<?php echo esc_url( $portal_url ); ?>" target="_blank"><?php echo esc_html( $portal_url ); ?></a>
 			</p>
 		</div>
 	<?php endif; ?>
@@ -33,6 +34,14 @@ $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
 	<div class="card" style="max-width:720px;margin-top:16px;padding:16px 20px;">
 		<h2><?php esc_html_e( 'Environment & AI Readiness', 'reatrium' ); ?></h2>
 		<ul>
+			<li>
+				<strong><?php esc_html_e( 'Permalinks:', 'reatrium' ); ?></strong>
+				<?php if ( get_option( 'permalink_structure' ) !== '' ) : ?>
+					✅ <?php esc_html_e( 'Pretty permalinks active (/intranet/)', 'reatrium' ); ?>
+				<?php else : ?>
+					ℹ️ <?php esc_html_e( 'Plain permalinks active (portal uses ?reatrium_portal=1). Switch to "Post name" under Settings → Permalinks for /intranet/ URLs.', 'reatrium' ); ?>
+				<?php endif; ?>
+			</li>
 			<li>
 				<strong><?php esc_html_e( 'WordPress 7+ AI Client:', 'reatrium' ); ?></strong>
 				<?php echo $ai_ready ? '✅ ' . esc_html__( 'Available', 'reatrium' ) : '⚠️ ' . esc_html__( 'Configure a provider under Settings → Connectors', 'reatrium' ); ?>

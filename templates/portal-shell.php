@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<nav class="reatrium-nav" aria-label="<?php esc_attr_e( 'Intranet Navigation', 'reatrium' ); ?>">
 				<?php foreach ( $views as $slug => $item ) : ?>
 					<?php
-					$url    = $slug === 'home' ? home_url( '/intranet/' ) : home_url( '/intranet/' . $slug . '/' );
+					$url    = ReAtrium_Portal::portal_url( $slug );
 					$active = $current_view === $slug ? ' is-active' : '';
 					?>
 					<a class="reatrium-nav-link<?php echo esc_attr( $active ); ?>" href="<?php echo esc_url( $url ); ?>">

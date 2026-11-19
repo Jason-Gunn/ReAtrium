@@ -279,7 +279,7 @@ class ReAtrium_Module_KB {
 				] );
 				if ( $post_id && ! is_wp_error( $post_id ) ) {
 					wp_set_object_terms( $post_id, $dept, 'reatrium_department' );
-					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'kb_published', home_url( '/intranet/handbook/' ) ) );
+					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'kb_published', ReAtrium_Portal::portal_url( 'handbook' ) ) );
 					exit;
 				}
 			}
