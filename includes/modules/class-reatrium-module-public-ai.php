@@ -59,6 +59,7 @@ class ReAtrium_Module_Public_AI {
 				'output_schema'       => [
 					'type'       => 'object',
 					'properties' => [
+						'ok'      => [ 'type' => 'boolean' ],
 						'title'   => [ 'type' => 'string' ],
 						'content' => [ 'type' => 'string' ],
 					],
@@ -92,6 +93,7 @@ class ReAtrium_Module_Public_AI {
 		);
 
 		return [
+			'ok'      => (bool) $ai['ok'],
 			'title'   => $topic,
 			'content' => $ai['ok'] ? $ai['text'] : $ai['error'],
 		];
@@ -116,9 +118,10 @@ class ReAtrium_Module_Public_AI {
 				'notes'  => $notes,
 			] );
 
-			if ( ! empty( $_POST['save_as_wp_draft'] ) && ! empty( $draft_output['content'] ) ) {
-				$post_id = wp_insert_post( [
-					'post_type'    => $format === 'faq' ? 'page' : 'post',
+			if ( ! empty( $_POST['save_as_wp_draft'] ) && ! empty( $draft_output['ok'] ) && ! empty( $draft_output['content'] ) ) {
+				$post_type = ( $format === 'faq' && current_user_can( 'edit_pages' ) ) ? 'page' : 'post';
+				$post_id   = wp_insert_post( [
+					'post_type'    => $post_type,
 					'post_status'  => 'draft',
 					'post_title'   => $topic,
 					'post_content' => wp_kses_post( wpautop( $draft_output['content'] ) ),
@@ -177,10 +180,16 @@ class ReAtrium_Module_Public_AI {
 			</form>
 
 			<?php if ( is_array( $draft_output ) ) : ?>
-				<div class="card" style="max-width:720px;padding:16px 20px;margin-top:16px;">
-					<h2><?php esc_html_e( 'Generated Draft', 'reatrium' ); ?></h2>
-					<div><?php echo wp_kses_post( wpautop( esc_html( $draft_output['content'] ) ) ); ?></div>
-				</div>
+				<?php if ( empty( $draft_output['ok'] ) ) : ?>
+					<div class="notice notice-error">
+						<p><?php echo esc_html( $draft_output['content'] ); ?></p>
+					</div>
+				<?php else : ?>
+					<div class="card" style="max-width:720px;padding:16px 20px;margin-top:16px;">
+						<h2><?php esc_html_e( 'Generated Draft', 'reatrium' ); ?></h2>
+						<div><?php echo wp_kses_post( wpautop( esc_html( $draft_output['content'] ) ) ); ?></div>
+					</div>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 		<?php

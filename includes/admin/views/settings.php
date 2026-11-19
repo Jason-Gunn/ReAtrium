@@ -19,13 +19,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<a class="button button-primary" href="<?php echo esc_url( home_url( '/intranet/' ) ); ?>" target="_blank">
 			<?php esc_html_e( 'Open Employee Portal (/intranet/)', 'reatrium' ); ?>
 		</a>
-		<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=reatrium-setup' ) ); ?>">
-			<?php esc_html_e( 'Run Setup Wizard', 'reatrium' ); ?>
-		</a>
-		<?php if ( ReAtrium_AI_Gateway::is_aigis_active() ) : ?>
-			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=aigis-agents' ) ); ?>">
-				<?php esc_html_e( 'Manage Agents in AIGIS', 'reatrium' ); ?>
+		<?php if ( current_user_can( 'manage_options' ) ) : ?>
+			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=reatrium-setup' ) ); ?>">
+				<?php esc_html_e( 'Run Setup Wizard', 'reatrium' ); ?>
 			</a>
+			<?php if ( ReAtrium_AI_Gateway::is_aigis_active() ) : ?>
+				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=aigis-agents' ) ); ?>">
+					<?php esc_html_e( 'Manage Agents in AIGIS', 'reatrium' ); ?>
+				</a>
+			<?php endif; ?>
 		<?php endif; ?>
 	</p>
 </div>

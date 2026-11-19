@@ -87,16 +87,21 @@ class ReAtrium_Portal {
 			return;
 		}
 
+		$requested_view = sanitize_key( (string) get_query_var( 'reatrium_view', '' ) );
+		$redirect_to    = $requested_view !== ''
+			? home_url( '/intranet/' . $requested_view . '/' )
+			: home_url( '/intranet/' );
+
 		if ( ! ReAtrium_Isolation::is_intranet_user() ) {
-			wp_safe_redirect( wp_login_url( home_url( '/intranet/' ) ) );
+			wp_safe_redirect( wp_login_url( $redirect_to ) );
 			exit;
 		}
 
 		$views        = self::get_views();
-		$current_view = sanitize_key( (string) get_query_var( 'reatrium_view', 'home' ) );
-		if ( $current_view === '' || ! isset( $views[ $current_view ] ) ) {
-			$current_view = 'home';
-		}
+		$current_view = $requested_view !== '' && isset( $views[ $requested_view ] ) ? $requested_view : 'home';
+
+		// Allow modules to handle write POST submissions and perform POST-Redirect-GET before HTML output.
+		do_action( 'reatrium_portal_before_render', $current_view );
 
 		$company_name = (string) get_option( 'reatrium_company_name', get_bloginfo( 'name' ) );
 		$current_user = wp_get_current_user();

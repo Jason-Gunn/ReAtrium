@@ -76,7 +76,7 @@ class ReAtrium_Admin {
 		add_menu_page(
 			__( 'ReAtrium Intranet', 'reatrium' ),
 			__( 'ReAtrium', 'reatrium' ),
-			'manage_options',
+			'edit_posts',
 			'reatrium-settings',
 			[ $this, 'render_settings' ],
 			'dashicons-building',
@@ -87,7 +87,7 @@ class ReAtrium_Admin {
 			'reatrium-settings',
 			__( 'Settings & Modules', 'reatrium' ),
 			__( 'Settings & Modules', 'reatrium' ),
-			'manage_options',
+			'edit_posts',
 			'reatrium-settings',
 			[ $this, 'render_settings' ]
 		);
@@ -129,7 +129,7 @@ class ReAtrium_Admin {
 			$this->maybe_sync_aigis_agents( true );
 
 			if ( ! empty( $_POST['seed_sample_data'] ) ) {
-				$this->seed_sample_data();
+				$this->seed_sample_data( $modules );
 			}
 
 			$saved = true;
@@ -138,8 +138,8 @@ class ReAtrium_Admin {
 		include REATRIUM_PLUGIN_DIR . 'includes/admin/views/setup-wizard.php';
 	}
 
-	private function seed_sample_data(): void {
-		if ( ! get_posts( [ 'post_type' => 'reatrium_announce', 'posts_per_page' => 1, 'reatrium_internal_query' => true ] ) ) {
+	private function seed_sample_data( array $modules = [] ): void {
+		if ( ! empty( $modules['announcements'] ) && ! get_posts( [ 'post_type' => 'reatrium_announce', 'posts_per_page' => 1, 'reatrium_internal_query' => true ] ) ) {
 			wp_insert_post( [
 				'post_type'    => 'reatrium_announce',
 				'post_status'  => 'publish',
@@ -149,7 +149,11 @@ class ReAtrium_Admin {
 			] );
 		}
 
-		if ( ! get_posts( [ 'post_type' => 'reatrium_kb', 'posts_per_page' => 1, 'reatrium_internal_query' => true ] ) ) {
+		if ( ! empty( $modules['knowledge_base'] ) && ! get_posts( [ 'post_type' => 'reatrium_kb', 'posts_per_page' => 1, 'reatrium_internal_query' => true ] ) ) {
+			if ( ! taxonomy_exists( 'reatrium_department' ) ) {
+				( new ReAtrium_Module_KB() )->register_cpt_and_taxonomy();
+			}
+
 			$kb_id = wp_insert_post( [
 				'post_type'    => 'reatrium_kb',
 				'post_status'  => 'publish',
@@ -159,12 +163,16 @@ class ReAtrium_Admin {
 			] );
 			if ( $kb_id && ! is_wp_error( $kb_id ) ) {
 				wp_set_object_terms( $kb_id, 'HR', 'reatrium_department' );
+				$kb_post = get_post( $kb_id );
+				if ( $kb_post instanceof WP_Post ) {
+					( new ReAtrium_Module_KB() )->index_kb_post( $kb_id, $kb_post );
+				}
 			}
 		}
 	}
 
 	public function render_settings(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'edit_posts' ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'reatrium' ) );
 		}
 

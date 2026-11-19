@@ -15,6 +15,7 @@ class ReAtrium_Module_Requests {
 		$loader->add_action( 'init', $this, 'register_cpt' );
 		$loader->add_action( 'wp_abilities_api_init', $this, 'register_abilities' );
 		$loader->add_filter( 'reatrium_portal_views', $this, 'register_portal_view' );
+		$loader->add_action( 'reatrium_portal_before_render', $this, 'handle_portal_post' );
 	}
 
 	public function register_cpt(): void {
@@ -30,7 +31,7 @@ class ReAtrium_Module_Requests {
 				'exclude_from_search' => true,
 				'show_ui'             => true,
 				'show_in_menu'        => 'reatrium-settings',
-				'show_in_rest'        => true,
+				'show_in_rest'        => false,
 				'supports'            => [ 'title', 'editor', 'author' ],
 				'capability_type'     => 'post',
 			]
@@ -96,8 +97,13 @@ class ReAtrium_Module_Requests {
 		return $views;
 	}
 
-	public function render_portal_view(): void {
-		$notice = '';
+	/**
+	 * Handle request submission and status updates before HTML output (POST-Redirect-GET).
+	 */
+	public function handle_portal_post( string $current_view ): void {
+		if ( $current_view !== 'requests' ) {
+			return;
+		}
 
 		if ( isset( $_POST['reatrium_submit_request'] ) && check_admin_referer( 'reatrium_request_nonce' ) ) {
 			$title = sanitize_text_field( wp_unslash( $_POST['req_title'] ?? '' ) );
@@ -118,17 +124,30 @@ class ReAtrium_Module_Requests {
 					update_post_meta( $post_id, '_reatrium_request_dept', $dept );
 					update_post_meta( $post_id, '_reatrium_request_status', 'open' );
 					update_post_meta( $post_id, '_reatrium_ai_triage', $triage['triage_notes'] );
-					$notice = __( 'Request submitted and triaged.', 'reatrium' );
+					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'req_submitted', home_url( '/intranet/requests/' ) ) );
+					exit;
 				}
 			}
 		}
 
 		if ( isset( $_POST['reatrium_update_req_status'] ) && check_admin_referer( 'reatrium_req_status_nonce' ) && current_user_can( 'edit_others_posts' ) ) {
 			$req_id = (int) ( $_POST['req_id'] ?? 0 );
-			$status = sanitize_key( wp_unslash( $_POST['new_status'] ?? 'open' ) );
-			if ( $req_id > 0 && in_array( $status, [ 'open', 'in_progress', 'resolved' ], true ) ) {
+			$status = sanitize_key( wp_unslash( $_POST['new_status'] ?? '' ) );
+			if ( $req_id > 0 && get_post_type( $req_id ) === 'reatrium_request' && in_array( $status, [ 'open', 'in_progress', 'resolved' ], true ) ) {
 				update_post_meta( $req_id, '_reatrium_request_status', $status );
+				wp_safe_redirect( add_query_arg( 'reatrium_notice', 'req_updated', home_url( '/intranet/requests/' ) ) );
+				exit;
 			}
+		}
+	}
+
+	public function render_portal_view(): void {
+		$notice_key = sanitize_key( wp_unslash( $_GET['reatrium_notice'] ?? '' ) );
+		$notice     = '';
+		if ( $notice_key === 'req_submitted' ) {
+			$notice = __( 'Request submitted and triaged.', 'reatrium' );
+		} elseif ( $notice_key === 'req_updated' ) {
+			$notice = __( 'Request status updated.', 'reatrium' );
 		}
 
 		$args = [
@@ -205,9 +224,9 @@ class ReAtrium_Module_Requests {
 							<form method="post" style="margin-top:8px;display:flex;gap:6px;">
 								<?php wp_nonce_field( 'reatrium_req_status_nonce' ); ?>
 								<input type="hidden" name="req_id" value="<?php echo esc_attr( $req->ID ); ?>">
-								<button type="submit" name="reatrium_update_req_status" value="1" onclick="this.form.new_status.value='in_progress';" class="reatrium-btn"><?php esc_html_e( 'In Progress', 'reatrium' ); ?></button>
-								<button type="submit" name="reatrium_update_req_status" value="1" onclick="this.form.new_status.value='resolved';" class="reatrium-btn"><?php esc_html_e( 'Resolve', 'reatrium' ); ?></button>
-								<input type="hidden" name="new_status" value="open">
+								<input type="hidden" name="reatrium_update_req_status" value="1">
+								<button type="submit" name="new_status" value="in_progress" class="reatrium-btn"><?php esc_html_e( 'In Progress', 'reatrium' ); ?></button>
+								<button type="submit" name="new_status" value="resolved" class="reatrium-btn"><?php esc_html_e( 'Resolve', 'reatrium' ); ?></button>
 							</form>
 						<?php endif; ?>
 					</div>

@@ -14,9 +14,12 @@ class ReAtrium_Module_KB {
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'init', $this, 'register_cpt_and_taxonomy' );
 		$loader->add_action( 'save_post_reatrium_kb', $this, 'index_kb_post', 10, 2 );
+		$loader->add_action( 'set_object_terms', $this, 'reindex_on_department_change', 10, 4 );
+		$loader->add_action( 'wp_trash_post', $this, 'delete_kb_index' );
 		$loader->add_action( 'before_delete_post', $this, 'delete_kb_index' );
 		$loader->add_action( 'wp_abilities_api_init', $this, 'register_abilities' );
 		$loader->add_filter( 'reatrium_portal_views', $this, 'register_portal_view' );
+		$loader->add_action( 'reatrium_portal_before_render', $this, 'handle_portal_post' );
 	}
 
 	public function register_cpt_and_taxonomy(): void {
@@ -60,21 +63,45 @@ class ReAtrium_Module_KB {
 	 * Chunk and store a KB article when saved (supports external vector DBs via filter).
 	 */
 	public function index_kb_post( int $post_id, WP_Post $post ): void {
-		if ( wp_is_post_revision( $post_id ) || $post->post_status !== 'publish' ) {
+		if ( wp_is_post_revision( $post_id ) ) {
 			return;
 		}
 
 		$store = ReAtrium_AI_Gateway::vector_store();
 		$store->delete_by_post( $post_id );
 
-		$text   = wp_strip_all_tags( $post->post_title . "\n\n" . $post->post_content );
-		$chunks = str_split( trim( $text ), 1200 );
+		if ( $post->post_status !== 'publish' ) {
+			return;
+		}
+
+		$text = trim( wp_strip_all_tags( $post->post_title . "\n\n" . $post->post_content ) );
+		if ( $text === '' ) {
+			return;
+		}
+
+		$chunks = function_exists( 'mb_str_split' )
+			? mb_str_split( $text, 1200, 'UTF-8' )
+			: str_split( $text, 1200 );
 		$terms  = wp_get_post_terms( $post_id, 'reatrium_department', [ 'fields' => 'names' ] );
 		$dept   = is_array( $terms ) && ! empty( $terms ) ? (string) $terms[0] : 'General';
 
 		foreach ( $chunks as $idx => $chunk ) {
 			// Store chunk text cleanly; vector embedding can be populated when an embedding model is configured.
 			$store->upsert( $post_id, $idx, $chunk, [], [ 'department' => $dept ] );
+		}
+	}
+
+	/**
+	 * Re-index a KB post when its department taxonomy terms are updated.
+	 */
+	public function reindex_on_department_change( int $object_id, array $terms, array $tt_ids, string $taxonomy ): void {
+		if ( $taxonomy !== 'reatrium_department' || get_post_type( $object_id ) !== 'reatrium_kb' ) {
+			return;
+		}
+
+		$post = get_post( $object_id );
+		if ( $post instanceof WP_Post && $post->post_status === 'publish' ) {
+			$this->index_kb_post( $object_id, $post );
 		}
 	}
 
@@ -229,14 +256,12 @@ class ReAtrium_Module_KB {
 		return $views;
 	}
 
-	public function render_portal_view(): void {
-		$qa_result     = null;
-		$question      = '';
-		$created_msg   = '';
-
-		if ( isset( $_POST['reatrium_ask_kb'] ) && check_admin_referer( 'reatrium_ask_kb_nonce' ) ) {
-			$question  = sanitize_text_field( wp_unslash( $_POST['kb_question'] ?? '' ) );
-			$qa_result = $this->execute_ask_handbook( [ 'question' => $question ] );
+	/**
+	 * Handle handbook article creation before HTML output (POST-Redirect-GET).
+	 */
+	public function handle_portal_post( string $current_view ): void {
+		if ( $current_view !== 'handbook' ) {
+			return;
 		}
 
 		if ( isset( $_POST['reatrium_add_kb'] ) && check_admin_referer( 'reatrium_add_kb_nonce' ) && current_user_can( 'publish_posts' ) ) {
@@ -254,9 +279,22 @@ class ReAtrium_Module_KB {
 				] );
 				if ( $post_id && ! is_wp_error( $post_id ) ) {
 					wp_set_object_terms( $post_id, $dept, 'reatrium_department' );
-					$created_msg = __( 'Handbook article published.', 'reatrium' );
+					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'kb_published', home_url( '/intranet/handbook/' ) ) );
+					exit;
 				}
 			}
+		}
+	}
+
+	public function render_portal_view(): void {
+		$qa_result   = null;
+		$question    = '';
+		$notice_key  = sanitize_key( wp_unslash( $_GET['reatrium_notice'] ?? '' ) );
+		$created_msg = $notice_key === 'kb_published' ? __( 'Handbook article published.', 'reatrium' ) : '';
+
+		if ( isset( $_POST['reatrium_ask_kb'] ) && check_admin_referer( 'reatrium_ask_kb_nonce' ) ) {
+			$question  = sanitize_text_field( wp_unslash( $_POST['kb_question'] ?? '' ) );
+			$qa_result = $this->execute_ask_handbook( [ 'question' => $question ] );
 		}
 
 		$articles    = get_posts( [

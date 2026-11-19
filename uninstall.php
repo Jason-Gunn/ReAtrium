@@ -18,4 +18,5 @@ delete_option( 'reatrium_company_name' );
 delete_option( 'reatrium_departments' );
 delete_option( 'reatrium_modules' );
 delete_option( 'reatrium_setup_completed' );
+delete_transient( 'reatrium_aigis_agents_synced' );
 

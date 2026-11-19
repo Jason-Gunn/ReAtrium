@@ -113,7 +113,7 @@ class ReAtrium_AI_Gateway {
 		if ( ! empty( $options['abilities'] ) && is_array( $options['abilities'] ) && method_exists( $builder, 'using_abilities' ) ) {
 			$allowed_abilities = array_filter(
 				$options['abilities'],
-				static fn( string $ability ) => self::can_agent_execute_ability( $agent_slug, $ability )
+				static fn( $ability ) => is_string( $ability ) && self::can_agent_execute_ability( $agent_slug, $ability )
 			);
 			if ( ! empty( $allowed_abilities ) ) {
 				$builder->using_abilities( ...array_values( $allowed_abilities ) );
@@ -130,10 +130,23 @@ class ReAtrium_AI_Gateway {
 			];
 		}
 
-		$generated  = $builder->generate_text();
+		try {
+			$generated = $builder->generate_text();
+		} catch ( Throwable $e ) {
+			$generated = new WP_Error( 'reatrium_ai_exception', $e->getMessage() );
+		}
+
 		$latency_ms = round( ( microtime( true ) - $start ) * 1000, 2 );
-		$error_msg  = is_wp_error( $generated ) ? $generated->get_error_message() : '';
-		$text       = is_string( $generated ) ? $generated : '';
+		if ( is_wp_error( $generated ) ) {
+			$error_msg = $generated->get_error_message();
+			$text      = '';
+		} elseif ( is_string( $generated ) ) {
+			$error_msg = '';
+			$text      = $generated;
+		} else {
+			$error_msg = __( 'Unexpected empty response from AI provider.', 'reatrium' );
+			$text      = '';
+		}
 
 		// 2. Post-flight logging hook (AIGIS records usage, latency, and audit trail).
 		do_action(

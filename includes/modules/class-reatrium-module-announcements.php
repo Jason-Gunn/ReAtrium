@@ -15,6 +15,7 @@ class ReAtrium_Module_Announcements {
 		$loader->add_action( 'init', $this, 'register_cpt' );
 		$loader->add_action( 'wp_abilities_api_init', $this, 'register_abilities' );
 		$loader->add_filter( 'reatrium_portal_views', $this, 'register_portal_view' );
+		$loader->add_action( 'reatrium_portal_before_render', $this, 'handle_portal_post' );
 	}
 
 	public function register_cpt(): void {
@@ -110,8 +111,8 @@ class ReAtrium_Module_Announcements {
 		$summary = $ai['ok']
 			? $ai['text']
 			: sprintf(
-				/* translators: %d: announcement count */
-				__( 'AI digest unavailable (%s). %d recent announcement(s) are listed below.', 'reatrium' ),
+				/* translators: 1: error message, 2: announcement count */
+				__( 'AI digest unavailable (%1$s). %2$d recent announcement(s) are listed below.', 'reatrium' ),
 				$ai['error'],
 				count( $posts )
 			);
@@ -131,11 +132,14 @@ class ReAtrium_Module_Announcements {
 		return $views;
 	}
 
-	public function render_portal_view(): void {
-		$digest_result = null;
-		$posted_notice = '';
+	/**
+	 * Handle quick announcement creation before HTML output (POST-Redirect-GET).
+	 */
+	public function handle_portal_post( string $current_view ): void {
+		if ( $current_view !== 'home' ) {
+			return;
+		}
 
-		// Handle quick announcement creation from portal.
 		if ( isset( $_POST['reatrium_post_announce'] ) && check_admin_referer( 'reatrium_announce_nonce' ) && current_user_can( 'publish_posts' ) ) {
 			$title   = sanitize_text_field( wp_unslash( $_POST['announce_title'] ?? '' ) );
 			$content = wp_kses_post( wp_unslash( $_POST['announce_content'] ?? '' ) );
@@ -151,24 +155,50 @@ class ReAtrium_Module_Announcements {
 				] );
 				if ( $post_id && ! is_wp_error( $post_id ) ) {
 					update_post_meta( $post_id, '_reatrium_pinned', $pinned );
-					$posted_notice = __( 'Announcement published.', 'reatrium' );
+					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'announce_published', home_url( '/intranet/' ) ) );
+					exit;
 				}
 			}
 		}
+	}
+
+	public function render_portal_view(): void {
+		$digest_result = null;
+		$notice_key    = sanitize_key( wp_unslash( $_GET['reatrium_notice'] ?? '' ) );
+		$posted_notice = $notice_key === 'announce_published' ? __( 'Announcement published.', 'reatrium' ) : '';
 
 		// Handle "Catch Me Up" AI Digest request.
 		if ( isset( $_POST['reatrium_catch_me_up'] ) && check_admin_referer( 'reatrium_digest_nonce' ) ) {
 			$digest_result = $this->execute_summarize_updates( [ 'days' => 14 ] );
 		}
 
-		$announcements = get_posts( [
+		// Fetch pinned announcements first, then fill up to 20 with recent unpinned posts.
+		$pinned_posts = get_posts( [
 			'post_type'               => 'reatrium_announce',
 			'post_status'             => 'publish',
 			'posts_per_page'          => 20,
 			'orderby'                 => 'date',
 			'order'                   => 'DESC',
+			'meta_key'                => '_reatrium_pinned',
+			'meta_value'              => '1',
 			'reatrium_internal_query' => true,
 		] );
+
+		$pinned_ids = wp_list_pluck( $pinned_posts, 'ID' );
+		$remaining  = max( 0, 20 - count( $pinned_posts ) );
+		$other      = $remaining > 0
+			? get_posts( [
+				'post_type'               => 'reatrium_announce',
+				'post_status'             => 'publish',
+				'posts_per_page'          => $remaining,
+				'orderby'                 => 'date',
+				'order'                   => 'DESC',
+				'post__not_in'            => $pinned_ids,
+				'reatrium_internal_query' => true,
+			] )
+			: [];
+
+		$announcements = array_merge( $pinned_posts, $other );
 		?>
 		<?php if ( $posted_notice !== '' ) : ?>
 			<div class="reatrium-alert is-ok"><?php echo esc_html( $posted_notice ); ?></div>

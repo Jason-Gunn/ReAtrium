@@ -38,7 +38,7 @@ class ReAtrium_Activator {
 			embedding    LONGTEXT            NOT NULL,
 			model_name   VARCHAR(150)        NOT NULL DEFAULT '',
 			updated_at   DATETIME            NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			PRIMARY KEY (id),
+			PRIMARY KEY  (id),
 			KEY idx_post_id (post_id),
 			KEY idx_department (department)
 		) $charset_collate;";

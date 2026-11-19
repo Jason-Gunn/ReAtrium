@@ -35,20 +35,22 @@ class ReAtrium_Vector_Store_MySQL implements ReAtrium_Vector_Store_Interface {
 			)
 		);
 
-		$data = [
+		$encoded = wp_json_encode( $embedding );
+		$data    = [
 			'post_id'     => $post_id,
 			'chunk_index' => $chunk_index,
 			'department'  => $department,
 			'chunk_text'  => $content,
-			'embedding'   => wp_json_encode( $embedding ),
+			'embedding'   => is_string( $encoded ) ? $encoded : '[]',
 			'model_name'  => $model_name,
 		];
+		$formats = [ '%d', '%d', '%s', '%s', '%s', '%s' ];
 
 		if ( $existing_id ) {
-			return false !== $wpdb->update( $this->table, $data, [ 'id' => (int) $existing_id ] );
+			return false !== $wpdb->update( $this->table, $data, [ 'id' => (int) $existing_id ], $formats, [ '%d' ] );
 		}
 
-		return false !== $wpdb->insert( $this->table, $data );
+		return false !== $wpdb->insert( $this->table, $data, $formats );
 	}
 
 	public function delete_by_post( int $post_id ): bool {

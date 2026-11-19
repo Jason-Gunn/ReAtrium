@@ -98,7 +98,11 @@ class ReAtrium_Module_Directory {
 
 	public function execute_find_expert( array $input ): array {
 		$query = sanitize_text_field( $input['query'] ?? '' );
-		$users = get_users( [ 'number' => 100, 'orderby' => 'display_name' ] );
+		$users = get_users( [
+			'role__in' => ReAtrium_Isolation::allowed_roles(),
+			'number'   => 100,
+			'orderby'  => 'display_name',
+		] );
 
 		$roster = '';
 		foreach ( $users as $u ) {
@@ -142,7 +146,11 @@ class ReAtrium_Module_Directory {
 			$expert_result = $this->execute_find_expert( [ 'query' => $query_text ] );
 		}
 
-		$users = get_users( [ 'number' => 100, 'orderby' => 'display_name' ] );
+		$users = get_users( [
+			'role__in' => ReAtrium_Isolation::allowed_roles(),
+			'number'   => 100,
+			'orderby'  => 'display_name',
+		] );
 		?>
 		<div class="reatrium-card">
 			<h2><?php esc_html_e( 'Find the Right Person', 'reatrium' ); ?></h2>

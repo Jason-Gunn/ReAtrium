@@ -84,7 +84,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					?>
 					<div class="reatrium-card">
 						<h2><?php echo esc_html( sprintf( __( 'Welcome to %s Intranet', 'reatrium' ), $company_name ) ); ?></h2>
-						<p><?php esc_html_e( 'Your hybrid employee portal is active and isolated from the public website. Day 3 modules (Handbook RAG, Announcements Digest, Directory, and Requests) will render here.', 'reatrium' ); ?></p>
+						<p><?php esc_html_e( 'Your employee portal is active and isolated from the public website. Use the navigation menu to access enabled intranet modules.', 'reatrium' ); ?></p>
 					</div>
 					<?php
 				}
