@@ -9,7 +9,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ReAtrium_Module_KB {
+class ReAtrium_Module_KB extends ReAtrium_Abstract_Module {
+
+	public function id(): string {
+		return 'knowledge_base';
+	}
+
+	public function name(): string {
+		return __( 'Knowledge Base & SOPs', 'reatrium' );
+	}
+
+	public function description(): string {
+		return __( 'Internal company handbook, department SOPs, AI Q&A with citations, and SOP drafting.', 'reatrium' );
+	}
+
+	public function icon(): string {
+		return '📚';
+	}
+
+	public function is_core(): bool {
+		return true;
+	}
+
+	public function post_types(): array {
+		return [ 'reatrium_kb' ];
+	}
+
+	public function taxonomies(): array {
+		return [ 'reatrium_department' ];
+	}
+
+	public function agents(): array {
+		return [
+			[
+				'slug'              => 'reatrium-handbook',
+				'name'              => 'ReAtrium Handbook Assistant',
+				'description'       => 'Answers employee questions from internal SOPs and handbook articles.',
+				'allowed_abilities' => [ 'reatrium/ask-handbook', 'reatrium/draft-sop', 'aigis/check-guardrail' ],
+				'pii_policy'        => 'redact',
+			],
+		];
+	}
 
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'init', $this, 'register_cpt_and_taxonomy' );

@@ -35,6 +35,11 @@ function reatrium_load_dependencies(): void {
 	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-deactivator.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-isolation.php';
 
+	// Extensible Module SDK & Registry.
+	require_once REATRIUM_PLUGIN_DIR . 'includes/core/interface-reatrium-module.php';
+	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-abstract-module.php';
+	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-module-registry.php';
+
 	// AI & Vector layer.
 	require_once REATRIUM_PLUGIN_DIR . 'includes/ai/interface-reatrium-vector-store.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/ai/class-reatrium-vector-store-mysql.php';
@@ -43,7 +48,7 @@ function reatrium_load_dependencies(): void {
 	// Frontend hybrid portal.
 	require_once REATRIUM_PLUGIN_DIR . 'includes/portal/class-reatrium-portal.php';
 
-	// Intranet modules.
+	// Built-in Intranet & Public AI modules.
 	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-announcements.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-kb.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-directory.php';
@@ -58,17 +63,19 @@ function reatrium_load_dependencies(): void {
 	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-plugin.php';
 }
 
+reatrium_load_dependencies();
+
 register_activation_hook( __FILE__, [ 'ReAtrium_Activator', 'activate' ] );
 register_deactivation_hook( __FILE__, [ 'ReAtrium_Deactivator', 'deactivate' ] );
 
 /**
- * Bootstrap ReAtrium.
+ * Bootstrap ReAtrium on plugins_loaded so third-party module plugins
+ * can hook `reatrium_register_modules` regardless of plugin load order.
  */
 function run_reatrium(): void {
-	reatrium_load_dependencies();
 	$plugin = new ReAtrium_Plugin();
 	$plugin->run();
 }
 
-run_reatrium();
+add_action( 'plugins_loaded', 'run_reatrium' );
 

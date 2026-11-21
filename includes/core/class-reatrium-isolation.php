@@ -45,10 +45,16 @@ class ReAtrium_Isolation {
 	 * @return string[]
 	 */
 	public static function allowed_roles(): array {
-		return (array) apply_filters(
-			'reatrium_allowed_roles',
-			[ 'administrator', 'editor', 'author', 'contributor' ]
-		);
+		$defaults = [ 'administrator', 'editor', 'author', 'contributor' ];
+		$saved    = get_option( 'reatrium_allowed_roles', $defaults );
+		$roles    = is_array( $saved ) && ! empty( $saved ) ? array_values( array_map( 'sanitize_key', $saved ) ) : $defaults;
+
+		// Always ensure administrators retain intranet access.
+		if ( ! in_array( 'administrator', $roles, true ) ) {
+			$roles[] = 'administrator';
+		}
+
+		return (array) apply_filters( 'reatrium_allowed_roles', $roles );
 	}
 
 	/**

@@ -11,12 +11,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $company_name = (string) get_option( 'reatrium_company_name', get_bloginfo( 'name' ) );
 $departments  = (array) get_option( 'reatrium_departments', [ 'General', 'Operations', 'IT', 'HR', 'Sales' ] );
-$modules      = (array) get_option( 'reatrium_modules', [] );
+$registry     = ReAtrium_Module_Registry::instance();
+$all_modules  = $registry->all();
 $ai_ready     = ReAtrium_AI_Gateway::is_ai_available();
 $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
+$logotype_url = REATRIUM_PLUGIN_URL . 'assets/img/reatrium-logotype-lm.svg';
 ?>
 <div class="wrap">
-	<h1><?php esc_html_e( 'ReAtrium Setup Wizard', 'reatrium' ); ?></h1>
+	<div style="display:flex;align-items:center;gap:14px;margin:12px 0 6px;">
+		<img src="<?php echo esc_url( $logotype_url ); ?>" alt="ReAtrium" style="height:34px;width:auto;display:block;">
+		<span style="color:#64748b;font-size:14px;font-weight:600;"><?php esc_html_e( 'Setup Wizard', 'reatrium' ); ?></span>
+	</div>
 	<p class="description">
 		<?php esc_html_e( 'Configure your out-of-the-box AI-forward SMB intranet in under 5 minutes.', 'reatrium' ); ?>
 	</p>
@@ -31,7 +36,7 @@ $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
 		</div>
 	<?php endif; ?>
 
-	<div class="card" style="max-width:720px;margin-top:16px;padding:16px 20px;">
+	<div class="card" style="max-width:740px;margin-top:16px;padding:16px 20px;">
 		<h2><?php esc_html_e( 'Environment & AI Readiness', 'reatrium' ); ?></h2>
 		<ul>
 			<li>
@@ -53,7 +58,7 @@ $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
 		</ul>
 	</div>
 
-	<form method="post" style="max-width:720px;margin-top:16px;">
+	<form method="post" style="max-width:740px;margin-top:16px;">
 		<?php wp_nonce_field( 'reatrium_wizard_nonce' ); ?>
 		<input type="hidden" name="reatrium_wizard_save" value="1">
 
@@ -72,11 +77,17 @@ $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
 			<tr>
 				<th><?php esc_html_e( 'Enabled Modules', 'reatrium' ); ?></th>
 				<td>
-					<label><input type="checkbox" name="mod_knowledge_base" value="1" <?php checked( ! empty( $modules['knowledge_base'] ) ); ?>> <?php esc_html_e( 'Knowledge Base & SOPs (AI RAG Q&A)', 'reatrium' ); ?></label><br>
-					<label><input type="checkbox" name="mod_announcements" value="1" <?php checked( ! empty( $modules['announcements'] ) ); ?>> <?php esc_html_e( 'Company Announcements & AI Digest', 'reatrium' ); ?></label><br>
-					<label><input type="checkbox" name="mod_directory" value="1" <?php checked( ! empty( $modules['directory'] ) ); ?>> <?php esc_html_e( 'People & Org Directory (AI Expert Finder)', 'reatrium' ); ?></label><br>
-					<label><input type="checkbox" name="mod_requests" value="1" <?php checked( ! empty( $modules['requests'] ) ); ?>> <?php esc_html_e( 'Internal Requests & Helpdesk Triage', 'reatrium' ); ?></label><br>
-					<label><input type="checkbox" name="mod_public_ai" value="1" <?php checked( ! empty( $modules['public_ai'] ) ); ?>> <?php esc_html_e( 'Public Website & Blog AI Drafting Helpers', 'reatrium' ); ?></label>
+					<?php foreach ( $all_modules as $mod_id => $module ) : ?>
+						<label style="display:block;margin-bottom:8px;">
+							<input type="checkbox" name="reatrium_modules[]" value="<?php echo esc_attr( $mod_id ); ?>" <?php checked( $registry->is_enabled( $mod_id ) ); ?>>
+							<strong><?php echo esc_html( $module->icon() . ' ' . $module->name() ); ?></strong>
+							<?php if ( ! $module->is_core() ) : ?>
+								<span style="background:#eff6ff;color:#1d4ed8;font-size:11px;padding:1px 6px;border-radius:999px;margin-left:4px;"><?php esc_html_e( 'Add-on', 'reatrium' ); ?></span>
+							<?php endif; ?>
+							<br>
+							<span class="description" style="margin-left:24px;"><?php echo esc_html( $module->description() ); ?></span>
+						</label>
+					<?php endforeach; ?>
 				</td>
 			</tr>
 			<tr>
@@ -90,4 +101,3 @@ $aigis_active = ReAtrium_AI_Gateway::is_aigis_active();
 		<?php submit_button( __( 'Save & Launch Intranet Portal', 'reatrium' ) ); ?>
 	</form>
 </div>
-

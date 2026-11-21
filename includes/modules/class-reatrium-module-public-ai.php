@@ -12,7 +12,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ReAtrium_Module_Public_AI {
+class ReAtrium_Module_Public_AI extends ReAtrium_Abstract_Module {
+
+	public function id(): string {
+		return 'public_ai';
+	}
+
+	public function name(): string {
+		return __( 'Public Website & Blog AI Drafter', 'reatrium' );
+	}
+
+	public function description(): string {
+		return __( 'Public-zone AI drafting tool for marketing posts and customer FAQs, isolated from private intranet data.', 'reatrium' );
+	}
+
+	public function icon(): string {
+		return '🌐';
+	}
+
+	public function zone(): string {
+		return 'public';
+	}
+
+	public function is_core(): bool {
+		return true;
+	}
+
+	public function agents(): array {
+		return [
+			[
+				'slug'              => 'reatrium-public-writer',
+				'name'              => 'ReAtrium Public Blog & FAQ Drafter',
+				'description'       => 'Drafts public website content isolated from private intranet data.',
+				'allowed_abilities' => [ 'reatrium/draft-public-post', 'aigis/check-guardrail' ],
+				'pii_policy'        => 'block',
+				'zone'              => 'public',
+			],
+		];
+	}
 
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'wp_abilities_api_init', $this, 'register_abilities' );

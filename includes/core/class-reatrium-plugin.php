@@ -27,23 +27,14 @@ class ReAtrium_Plugin {
 		// Hybrid Frontend Portal (/intranet/).
 		( new ReAtrium_Portal() )->register( $this->loader );
 
-		// Modular Intranet Features.
-		$modules = (array) get_option( 'reatrium_modules', [] );
-		if ( ! empty( $modules['announcements'] ) || ! isset( $modules['announcements'] ) ) {
-			( new ReAtrium_Module_Announcements() )->register( $this->loader );
-		}
-		if ( ! empty( $modules['knowledge_base'] ) ) {
-			( new ReAtrium_Module_KB() )->register( $this->loader );
-		}
-		if ( ! empty( $modules['directory'] ) ) {
-			( new ReAtrium_Module_Directory() )->register( $this->loader );
-		}
-		if ( ! empty( $modules['requests'] ) ) {
-			( new ReAtrium_Module_Requests() )->register( $this->loader );
-		}
-		if ( ! empty( $modules['public_ai'] ) ) {
-			( new ReAtrium_Module_Public_AI() )->register( $this->loader );
-		}
+		// Modular Intranet & Public AI Features via extensible Registry.
+		$registry = ReAtrium_Module_Registry::instance();
+		$registry->register( new ReAtrium_Module_Announcements() );
+		$registry->register( new ReAtrium_Module_KB() );
+		$registry->register( new ReAtrium_Module_Directory() );
+		$registry->register( new ReAtrium_Module_Requests() );
+		$registry->register( new ReAtrium_Module_Public_AI() );
+		$registry->boot_enabled( $this->loader );
 
 		// Admin Setup Wizard & Settings.
 		if ( is_admin() ) {

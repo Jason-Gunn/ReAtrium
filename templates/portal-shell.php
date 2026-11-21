@@ -13,6 +13,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+$default_logo = REATRIUM_PLUGIN_URL . 'assets/img/reatrium-logo.svg';
+$custom_logo  = esc_url( (string) get_option( 'reatrium_logo_url', '' ) );
+$logo_url     = $custom_logo !== '' ? $custom_logo : $default_logo;
+$accent_color = sanitize_hex_color( (string) get_option( 'reatrium_accent_color', '#e8420a' ) ) ?: '#e8420a';
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -20,13 +25,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?php echo esc_html( $company_name ); ?> — <?php esc_html_e( 'Intranet', 'reatrium' ); ?></title>
+	<link rel="icon" type="image/svg+xml" href="<?php echo esc_url( $default_logo ); ?>">
 	<link rel="stylesheet" href="<?php echo esc_url( REATRIUM_PLUGIN_URL . 'assets/css/portal.css?ver=' . REATRIUM_VERSION ); ?>">
+	<?php if ( strtolower( $accent_color ) !== '#e8420a' ) : ?>
+		<style>:root { --ra-accent: <?php echo esc_html( $accent_color ); ?>; --ra-accent-soft: color-mix(in srgb, <?php echo esc_html( $accent_color ); ?> 10%, #ffffff); }</style>
+	<?php endif; ?>
 </head>
 <body class="reatrium-body">
 	<div class="reatrium-shell">
 		<aside class="reatrium-sidebar">
 			<div class="reatrium-brand">
-				<span class="reatrium-brand-mark">R</span>
+				<span class="reatrium-brand-mark">
+					<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $company_name ); ?>">
+				</span>
 				<div>
 					<strong><?php echo esc_html( $company_name ); ?></strong>
 					<small><?php esc_html_e( 'ReAtrium Intranet', 'reatrium' ); ?></small>

@@ -9,7 +9,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ReAtrium_Module_Announcements {
+class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
+
+	public function id(): string {
+		return 'announcements';
+	}
+
+	public function name(): string {
+		return __( 'Company Announcements & AI Digest', 'reatrium' );
+	}
+
+	public function description(): string {
+		return __( 'Internal company feed with pinned updates and an AI "Catch Me Up" executive digest.', 'reatrium' );
+	}
+
+	public function icon(): string {
+		return '🏠';
+	}
+
+	public function is_core(): bool {
+		return true;
+	}
+
+	public function post_types(): array {
+		return [ 'reatrium_announce' ];
+	}
+
+	public function agents(): array {
+		return [
+			[
+				'slug'              => 'reatrium-digest',
+				'name'              => 'ReAtrium Announcements Digest',
+				'description'       => 'Summarizes internal company announcements for employees.',
+				'allowed_abilities' => [ 'reatrium/summarize-updates', 'aigis/check-guardrail' ],
+				'pii_policy'        => 'redact',
+			],
+		];
+	}
 
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'init', $this, 'register_cpt' );

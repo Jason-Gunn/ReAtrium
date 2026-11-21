@@ -3,10 +3,10 @@
 	--ra-bg: #f4f6f9;
 	--ra-surface: #ffffff;
 	--ra-border: #e2e8f0;
-	--ra-text: #0f172a;
+	--ra-text: #0b111f;
 	--ra-muted: #64748b;
-	--ra-accent: #2563eb;
-	--ra-accent-soft: #eff6ff;
+	--ra-accent: #e8420a;
+	--ra-accent-soft: #fff4f0;
 	--ra-ok-bg: #dcfce7;
 	--ra-ok-fg: #166534;
 	--ra-warn-bg: #fef3c7;
@@ -46,15 +46,21 @@ body.reatrium-body {
 }
 
 .reatrium-brand-mark {
-	width: 36px;
-	height: 36px;
+	width: 38px;
+	height: 38px;
 	border-radius: 8px;
-	background: var(--ra-accent);
-	color: #fff;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	font-weight: 700;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+.reatrium-brand-mark img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
 }
 
 .reatrium-brand small {

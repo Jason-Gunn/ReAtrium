@@ -13,11 +13,13 @@ class ReAtrium_Admin {
 
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'admin_menu', $this, 'register_menus' );
+		$loader->add_action( 'admin_head', $this, 'render_admin_menu_icon_styles' );
 		$loader->add_action( 'admin_init', $this, 'maybe_sync_aigis_agents' );
 	}
 
 	/**
-	 * Register ReAtrium's built-in agents in AIGIS v2 if active (cached daily).
+	 * Register all agents declared by enabled ReAtrium modules (core + community)
+	 * in AIGIS v2 when active (cached daily).
 	 */
 	public function maybe_sync_aigis_agents( bool $force = false ): void {
 		if ( ! ReAtrium_AI_Gateway::is_aigis_active() ) {
@@ -27,43 +29,7 @@ class ReAtrium_Admin {
 			return;
 		}
 
-		$agents = [
-			[
-				'slug'              => 'reatrium-digest',
-				'name'              => 'ReAtrium Announcements Digest',
-				'description'       => 'Summarizes internal company announcements for employees.',
-				'allowed_abilities' => [ 'reatrium/summarize-updates', 'aigis/check-guardrail' ],
-				'pii_policy'        => 'redact',
-			],
-			[
-				'slug'              => 'reatrium-handbook',
-				'name'              => 'ReAtrium Handbook Assistant',
-				'description'       => 'Answers employee questions from internal SOPs and handbook articles.',
-				'allowed_abilities' => [ 'reatrium/ask-handbook', 'reatrium/draft-sop', 'aigis/check-guardrail' ],
-				'pii_policy'        => 'redact',
-			],
-			[
-				'slug'              => 'reatrium-directory',
-				'name'              => 'ReAtrium People Finder',
-				'description'       => 'Matches employee questions to colleagues and departments.',
-				'allowed_abilities' => [ 'reatrium/find-expert', 'aigis/check-guardrail' ],
-				'pii_policy'        => 'warn',
-			],
-			[
-				'slug'              => 'reatrium-triage',
-				'name'              => 'ReAtrium Helpdesk Triage',
-				'description'       => 'Categorizes internal IT/HR/Ops requests and drafts initial responses.',
-				'allowed_abilities' => [ 'reatrium/triage-request', 'aigis/check-guardrail' ],
-				'pii_policy'        => 'redact',
-			],
-			[
-				'slug'              => 'reatrium-public-writer',
-				'name'              => 'ReAtrium Public Blog & FAQ Drafter',
-				'description'       => 'Drafts public website content isolated from private intranet data.',
-				'allowed_abilities' => [ 'reatrium/draft-public-post', 'aigis/check-guardrail' ],
-				'pii_policy'        => 'block',
-			],
-		];
+		$agents = ReAtrium_Module_Registry::instance()->collect_agents();
 
 		foreach ( $agents as $agent ) {
 			do_action( 'aigis_register_agent_if_missing', $agent );
@@ -79,7 +45,7 @@ class ReAtrium_Admin {
 			'edit_posts',
 			'reatrium-settings',
 			[ $this, 'render_settings' ],
-			'dashicons-building',
+			REATRIUM_PLUGIN_URL . 'assets/img/reatrium-logo.svg',
 			31
 		);
 
@@ -102,23 +68,33 @@ class ReAtrium_Admin {
 		);
 	}
 
+	/**
+	 * Keep the custom SVG icon neatly sized in the WordPress admin sidebar.
+	 */
+	public function render_admin_menu_icon_styles(): void {
+		echo '<style>#toplevel_page_reatrium-settings .wp-menu-image img{width:20px;height:20px;padding-top:7px;opacity:1;}</style>';
+	}
+
 	public function render_setup_wizard(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'reatrium' ) );
 		}
 
-		$saved = false;
+		$registry = ReAtrium_Module_Registry::instance();
+		$saved    = false;
+
 		if ( isset( $_POST['reatrium_wizard_save'] ) && check_admin_referer( 'reatrium_wizard_nonce' ) ) {
 			$company = sanitize_text_field( wp_unslash( $_POST['company_name'] ?? '' ) );
 			$depts   = array_values( array_filter( array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_POST['departments'] ?? '' ) ) ) ) ) );
 
-			$modules = [
-				'knowledge_base' => ! empty( $_POST['mod_knowledge_base'] ),
-				'announcements'  => ! empty( $_POST['mod_announcements'] ),
-				'directory'      => ! empty( $_POST['mod_directory'] ),
-				'requests'       => ! empty( $_POST['mod_requests'] ),
-				'public_ai'      => ! empty( $_POST['mod_public_ai'] ),
-			];
+			$posted_modules = isset( $_POST['reatrium_modules'] ) && is_array( $_POST['reatrium_modules'] )
+				? array_map( 'sanitize_key', wp_unslash( $_POST['reatrium_modules'] ) )
+				: [];
+
+			$modules = [];
+			foreach ( $registry->all() as $mod_id => $module ) {
+				$modules[ $mod_id ] = in_array( $mod_id, $posted_modules, true );
+			}
 
 			update_option( 'reatrium_company_name', $company ?: get_bloginfo( 'name' ) );
 			update_option( 'reatrium_departments', $depts ?: [ 'General' ] );
@@ -176,7 +152,61 @@ class ReAtrium_Admin {
 			wp_die( esc_html__( 'Permission denied.', 'reatrium' ) );
 		}
 
+		$registry   = ReAtrium_Module_Registry::instance();
+		$active_tab = sanitize_key( wp_unslash( $_GET['tab'] ?? 'overview' ) );
+		$notice     = '';
+
+		if ( current_user_can( 'manage_options' ) ) {
+			// Save Modules tab.
+			if ( isset( $_POST['reatrium_save_modules'] ) && check_admin_referer( 'reatrium_settings_modules_nonce' ) ) {
+				$posted = isset( $_POST['reatrium_modules'] ) && is_array( $_POST['reatrium_modules'] )
+					? array_map( 'sanitize_key', wp_unslash( $_POST['reatrium_modules'] ) )
+					: [];
+
+				$modules = [];
+				foreach ( $registry->all() as $mod_id => $module ) {
+					$modules[ $mod_id ] = in_array( $mod_id, $posted, true );
+				}
+
+				update_option( 'reatrium_modules', $modules );
+				ReAtrium_Portal::register_rewrite_rules();
+				flush_rewrite_rules();
+				$this->maybe_sync_aigis_agents( true );
+				$active_tab = 'modules';
+				$notice     = __( 'Module settings saved.', 'reatrium' );
+			}
+
+			// Save Access & Isolation tab.
+			if ( isset( $_POST['reatrium_save_access'] ) && check_admin_referer( 'reatrium_settings_access_nonce' ) ) {
+				$posted_roles = isset( $_POST['reatrium_allowed_roles'] ) && is_array( $_POST['reatrium_allowed_roles'] )
+					? array_values( array_unique( array_map( 'sanitize_key', wp_unslash( $_POST['reatrium_allowed_roles'] ) ) ) )
+					: [];
+
+				if ( ! in_array( 'administrator', $posted_roles, true ) ) {
+					$posted_roles[] = 'administrator';
+				}
+
+				update_option( 'reatrium_allowed_roles', $posted_roles );
+				$active_tab = 'access';
+				$notice     = __( 'Access & Isolation settings saved.', 'reatrium' );
+			}
+
+			// Save Branding tab.
+			if ( isset( $_POST['reatrium_save_branding'] ) && check_admin_referer( 'reatrium_settings_branding_nonce' ) ) {
+				$company = sanitize_text_field( wp_unslash( $_POST['company_name'] ?? '' ) );
+				$depts   = array_values( array_filter( array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_POST['departments'] ?? '' ) ) ) ) ) );
+				$accent  = sanitize_hex_color( wp_unslash( $_POST['accent_color'] ?? '#e8420a' ) ) ?: '#e8420a';
+				$logo    = esc_url_raw( trim( (string) wp_unslash( $_POST['logo_url'] ?? '' ) ) );
+
+				update_option( 'reatrium_company_name', $company ?: get_bloginfo( 'name' ) );
+				update_option( 'reatrium_departments', $depts ?: [ 'General' ] );
+				update_option( 'reatrium_accent_color', $accent );
+				update_option( 'reatrium_logo_url', $logo );
+				$active_tab = 'branding';
+				$notice     = __( 'Branding settings saved.', 'reatrium' );
+			}
+		}
+
 		include REATRIUM_PLUGIN_DIR . 'includes/admin/views/settings.php';
 	}
 }
-

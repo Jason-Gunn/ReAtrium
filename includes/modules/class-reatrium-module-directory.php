@@ -9,7 +9,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ReAtrium_Module_Directory {
+class ReAtrium_Module_Directory extends ReAtrium_Abstract_Module {
+
+	public function id(): string {
+		return 'directory';
+	}
+
+	public function name(): string {
+		return __( 'People & Org Directory', 'reatrium' );
+	}
+
+	public function description(): string {
+		return __( 'Team directory with departments, job titles, skills, and an AI Expert Finder.', 'reatrium' );
+	}
+
+	public function icon(): string {
+		return '👥';
+	}
+
+	public function is_core(): bool {
+		return true;
+	}
+
+	public function agents(): array {
+		return [
+			[
+				'slug'              => 'reatrium-directory',
+				'name'              => 'ReAtrium People Finder',
+				'description'       => 'Matches employee questions to colleagues and departments.',
+				'allowed_abilities' => [ 'reatrium/find-expert', 'aigis/check-guardrail' ],
+				'pii_policy'        => 'warn',
+			],
+		];
+	}
 
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'show_user_profile', $this, 'render_profile_fields' );

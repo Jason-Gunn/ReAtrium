@@ -68,44 +68,22 @@ class ReAtrium_Portal {
 	}
 
 	/**
-	 * Return registered portal navigation views (filterable by modules).
+	 * Return registered portal navigation views (populated by enabled modules).
 	 *
 	 * @return array<string, array{label:string, icon:string, callback:callable|null}>
 	 */
 	public static function get_views(): array {
-		$modules = (array) get_option( 'reatrium_modules', [] );
+		$views = (array) apply_filters( 'reatrium_portal_views', [] );
 
-		$views = [
-			'home' => [
-				'label'    => __( 'Home & Feed', 'reatrium' ),
+		if ( empty( $views ) ) {
+			$views['home'] = [
+				'label'    => __( 'Home', 'reatrium' ),
 				'icon'     => '🏠',
 				'callback' => null,
-			],
-		];
-
-		if ( ! empty( $modules['knowledge_base'] ) ) {
-			$views['handbook'] = [
-				'label'    => __( 'Handbook & AI', 'reatrium' ),
-				'icon'     => '📚',
-				'callback' => null,
-			];
-		}
-		if ( ! empty( $modules['directory'] ) ) {
-			$views['directory'] = [
-				'label'    => __( 'People Directory', 'reatrium' ),
-				'icon'     => '👥',
-				'callback' => null,
-			];
-		}
-		if ( ! empty( $modules['requests'] ) ) {
-			$views['requests'] = [
-				'label'    => __( 'Requests & Helpdesk', 'reatrium' ),
-				'icon'     => '📥',
-				'callback' => null,
 			];
 		}
 
-		return (array) apply_filters( 'reatrium_portal_views', $views );
+		return $views;
 	}
 
 	/**
@@ -142,7 +120,8 @@ class ReAtrium_Portal {
 		}
 
 		$views        = self::get_views();
-		$current_view = $requested_view !== '' && isset( $views[ $requested_view ] ) ? $requested_view : 'home';
+		$default_view = isset( $views['home'] ) ? 'home' : (string) array_key_first( $views );
+		$current_view = $requested_view !== '' && isset( $views[ $requested_view ] ) ? $requested_view : $default_view;
 
 		// Allow modules to handle write POST submissions and perform POST-Redirect-GET before HTML output.
 		do_action( 'reatrium_portal_before_render', $current_view );

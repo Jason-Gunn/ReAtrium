@@ -69,6 +69,9 @@ $options = [
 	'reatrium_departments',
 	'reatrium_modules',
 	'reatrium_setup_completed',
+	'reatrium_allowed_roles',
+	'reatrium_accent_color',
+	'reatrium_logo_url',
 ];
 foreach ( $options as $option ) {
 	delete_option( $option );

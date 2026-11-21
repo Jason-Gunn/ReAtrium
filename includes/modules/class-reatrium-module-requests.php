@@ -9,7 +9,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ReAtrium_Module_Requests {
+class ReAtrium_Module_Requests extends ReAtrium_Abstract_Module {
+
+	public function id(): string {
+		return 'requests';
+	}
+
+	public function name(): string {
+		return __( 'Internal Requests & Helpdesk', 'reatrium' );
+	}
+
+	public function description(): string {
+		return __( 'IT, HR, and Operations intake queue with automated AI triage and priority recommendations.', 'reatrium' );
+	}
+
+	public function icon(): string {
+		return '📥';
+	}
+
+	public function is_core(): bool {
+		return true;
+	}
+
+	public function post_types(): array {
+		return [ 'reatrium_request' ];
+	}
+
+	public function agents(): array {
+		return [
+			[
+				'slug'              => 'reatrium-triage',
+				'name'              => 'ReAtrium Helpdesk Triage',
+				'description'       => 'Categorizes internal IT/HR/Ops requests and drafts initial responses.',
+				'allowed_abilities' => [ 'reatrium/triage-request', 'aigis/check-guardrail' ],
+				'pii_policy'        => 'redact',
+			],
+		];
+	}
 
 	public function register( ReAtrium_Loader $loader ): void {
 		$loader->add_action( 'init', $this, 'register_cpt' );
