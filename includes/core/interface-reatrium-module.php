@@ -72,6 +72,14 @@ interface ReAtrium_Module_Interface {
 	public function taxonomies(): array;
 
 	/**
+	 * WP 7+ Ability names registered by this module (e.g. 'reatrium/ask-handbook').
+	 * Automatically discoverable by the unified Ask ReAtrium assistant and AIGIS.
+	 *
+	 * @return string[]
+	 */
+	public function abilities(): array;
+
+	/**
 	 * AIGIS v2 agent definitions owned by this module.
 	 * Automatically synced to AIGIS when the module is enabled.
 	 *

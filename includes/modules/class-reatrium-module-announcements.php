@@ -35,6 +35,10 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 		return [ 'reatrium_announce' ];
 	}
 
+	public function abilities(): array {
+		return [ 'reatrium/summarize-updates' ];
+	}
+
 	public function agents(): array {
 		return [
 			[
@@ -138,9 +142,11 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 		$ai = ReAtrium_AI_Gateway::generate(
 			"Summarize these company announcements into a concise bulleted 'Catch Me Up' digest for an employee:\n\n" . $corpus,
 			[
-				'agent_slug' => 'reatrium-digest',
-				'module'     => 'announcements',
-				'system'     => 'You are an internal communications assistant. Be concise, accurate, and highlight action items.',
+				'agent_slug'  => 'reatrium-digest',
+				'module'      => 'announcements',
+				'zone'        => 'intranet',
+				'sensitivity' => 'internal',
+				'system'      => 'You are an internal communications assistant. Be concise, accurate, and highlight action items.',
 			]
 		);
 

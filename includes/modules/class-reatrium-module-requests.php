@@ -35,6 +35,10 @@ class ReAtrium_Module_Requests extends ReAtrium_Abstract_Module {
 		return [ 'reatrium_request' ];
 	}
 
+	public function abilities(): array {
+		return [ 'reatrium/triage-request' ];
+	}
+
 	public function agents(): array {
 		return [
 			[
@@ -113,9 +117,11 @@ class ReAtrium_Module_Requests extends ReAtrium_Abstract_Module {
 		$ai = ReAtrium_AI_Gateway::generate(
 			"Triage this internal employee request.\nDepartments: {$depts}\nTitle: {$title}\nDetails: {$description}\n\nProvide: 1) Suggested Department, 2) Suggested Priority (Low/Medium/High), 3) Short draft response for the assignee.",
 			[
-				'agent_slug' => 'reatrium-triage',
-				'module'     => 'requests',
-				'system'     => 'You are an efficient internal IT/HR/Ops helpdesk triage assistant.',
+				'agent_slug'  => 'reatrium-triage',
+				'module'      => 'requests',
+				'zone'        => 'intranet',
+				'sensitivity' => 'confidential',
+				'system'      => 'You are an efficient internal IT/HR/Ops helpdesk triage assistant.',
 			]
 		);
 

@@ -30,6 +30,7 @@ class ReAtrium_Plugin {
 		// Modular Intranet & Public AI Features via extensible Registry.
 		$registry = ReAtrium_Module_Registry::instance();
 		$registry->register( new ReAtrium_Module_Announcements() );
+		$registry->register( new ReAtrium_Module_Assistant() );
 		$registry->register( new ReAtrium_Module_KB() );
 		$registry->register( new ReAtrium_Module_Directory() );
 		$registry->register( new ReAtrium_Module_Requests() );

@@ -42,6 +42,10 @@ abstract class ReAtrium_Abstract_Module implements ReAtrium_Module_Interface {
 		return [];
 	}
 
+	public function abilities(): array {
+		return [];
+	}
+
 	public function agents(): array {
 		return [];
 	}

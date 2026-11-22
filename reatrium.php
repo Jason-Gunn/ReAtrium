@@ -49,6 +49,7 @@ function reatrium_load_dependencies(): void {
 	require_once REATRIUM_PLUGIN_DIR . 'includes/portal/class-reatrium-portal.php';
 
 	// Built-in Intranet & Public AI modules.
+	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-assistant.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-announcements.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-kb.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/modules/class-reatrium-module-directory.php';

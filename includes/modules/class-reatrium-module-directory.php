@@ -31,6 +31,10 @@ class ReAtrium_Module_Directory extends ReAtrium_Abstract_Module {
 		return true;
 	}
 
+	public function abilities(): array {
+		return [ 'reatrium/find-expert' ];
+	}
+
 	public function agents(): array {
 		return [
 			[
@@ -147,9 +151,11 @@ class ReAtrium_Module_Directory extends ReAtrium_Abstract_Module {
 		$ai = ReAtrium_AI_Gateway::generate(
 			"Based on the employee directory below, who should the user contact for: '{$query}'? Give 1-3 best matches with why.\n\nDirectory:\n{$roster}",
 			[
-				'agent_slug' => 'reatrium-directory',
-				'module'     => 'directory',
-				'system'     => 'You are a helpful internal directory assistant. Only recommend people listed in the directory.',
+				'agent_slug'  => 'reatrium-directory',
+				'module'      => 'directory',
+				'zone'        => 'intranet',
+				'sensitivity' => 'internal',
+				'system'      => 'You are a helpful internal directory assistant. Only recommend people listed in the directory.',
 			]
 		);
 

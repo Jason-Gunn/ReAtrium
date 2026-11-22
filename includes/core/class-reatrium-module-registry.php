@@ -165,6 +165,28 @@ class ReAtrium_Module_Registry {
 	}
 
 	/**
+	 * Collect WP 7+ Ability names from enabled modules, optionally filtered by zone.
+	 *
+	 * @param string|null $zone Optional zone filter ('intranet', 'public', 'hybrid').
+	 * @return string[]
+	 */
+	public function collect_abilities( ?string $zone = null ): array {
+		$abilities = [];
+		foreach ( $this->enabled() as $module ) {
+			if ( $zone !== null && $module->zone() !== $zone ) {
+				continue;
+			}
+			foreach ( $module->abilities() as $ability ) {
+				$ability = trim( (string) $ability );
+				if ( $ability !== '' && ! in_array( $ability, $abilities, true ) ) {
+					$abilities[] = $ability;
+				}
+			}
+		}
+		return $abilities;
+	}
+
+	/**
 	 * Collect all AIGIS agent definitions from enabled modules.
 	 *
 	 * @return array[]

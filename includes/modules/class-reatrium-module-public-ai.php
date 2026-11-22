@@ -38,6 +38,10 @@ class ReAtrium_Module_Public_AI extends ReAtrium_Abstract_Module {
 		return true;
 	}
 
+	public function abilities(): array {
+		return [ 'reatrium/draft-public-post' ];
+	}
+
 	public function agents(): array {
 		return [
 			[
@@ -122,10 +126,12 @@ class ReAtrium_Module_Public_AI extends ReAtrium_Abstract_Module {
 		$ai = ReAtrium_AI_Gateway::generate(
 			$prompt,
 			[
-				'agent_slug' => 'reatrium-public-writer',
-				'module'     => 'public_ai',
-				'department' => 'marketing',
-				'system'     => 'You are a public website content writer for an SMB. Write clear, engaging copy suitable for external customers.',
+				'agent_slug'  => 'reatrium-public-writer',
+				'module'      => 'public_ai',
+				'department'  => 'marketing',
+				'zone'        => 'public',
+				'sensitivity' => 'public',
+				'system'      => 'You are a public website content writer for an SMB. Write clear, engaging copy suitable for external customers.',
 			]
 		);
 

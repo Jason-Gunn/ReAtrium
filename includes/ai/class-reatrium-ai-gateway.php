@@ -54,21 +54,40 @@ class ReAtrium_AI_Gateway {
 	 * }
 	 */
 	public static function generate( string $prompt, array $options = [] ): array {
-		$agent_slug = sanitize_key( $options['agent_slug'] ?? 'reatrium-assistant' );
-		$context    = [
-			'agent_slug' => $agent_slug,
-			'module'     => sanitize_key( $options['module'] ?? 'core' ),
-			'department' => sanitize_text_field( $options['department'] ?? 'intranet' ),
-			'user_id'    => get_current_user_id(),
+		$agent_slug  = sanitize_key( $options['agent_slug'] ?? 'reatrium-assistant' );
+		$zone        = in_array( $options['zone'] ?? 'intranet', [ 'intranet', 'public', 'hybrid' ], true )
+			? (string) $options['zone']
+			: 'intranet';
+		$sensitivity = in_array( $options['sensitivity'] ?? 'internal', [ 'public', 'internal', 'confidential' ], true )
+			? (string) $options['sensitivity']
+			: 'internal';
+
+		// Enforce strict zone isolation: public-zone agents may never attach intranet abilities.
+		$requested_abilities = is_array( $options['abilities'] ?? null ) ? $options['abilities'] : [];
+		if ( $zone === 'public' && ! empty( $requested_abilities ) ) {
+			$public_abilities    = ReAtrium_Module_Registry::instance()->collect_abilities( 'public' );
+			$requested_abilities = array_values( array_intersect( $requested_abilities, $public_abilities ) );
+		}
+
+		$context = [
+			'agent_slug'  => $agent_slug,
+			'module'      => sanitize_key( $options['module'] ?? 'core' ),
+			'department'  => sanitize_text_field( $options['department'] ?? 'intranet' ),
+			'zone'        => $zone,
+			'sensitivity' => $sensitivity,
+			'abilities'   => $requested_abilities,
+			'user_id'     => get_current_user_id(),
 		];
 
-		// 1. Pre-flight governance hook (AIGIS checks agent status, budget, and PII).
+		// 1. Pre-flight governance hook (AIGIS checks agent status, zone policy, budget, and PII).
 		$preflight = apply_filters(
 			'reatrium_before_ai_call',
 			[
 				'agent_slug'   => $agent_slug,
 				'prompt'       => $prompt,
 				'system'       => (string) ( $options['system'] ?? '' ),
+				'zone'         => $zone,
+				'sensitivity'  => $sensitivity,
 				'allowed'      => true,
 				'block_reason' => '',
 				'pii_redacted' => false,
@@ -110,9 +129,9 @@ class ReAtrium_AI_Gateway {
 		if ( isset( $options['max_tokens'] ) && is_numeric( $options['max_tokens'] ) ) {
 			$builder->using_max_tokens( (int) $options['max_tokens'] );
 		}
-		if ( ! empty( $options['abilities'] ) && is_array( $options['abilities'] ) && method_exists( $builder, 'using_abilities' ) ) {
+		if ( ! empty( $requested_abilities ) && method_exists( $builder, 'using_abilities' ) ) {
 			$allowed_abilities = array_filter(
-				$options['abilities'],
+				$requested_abilities,
 				static fn( $ability ) => is_string( $ability ) && self::can_agent_execute_ability( $agent_slug, $ability )
 			);
 			if ( ! empty( $allowed_abilities ) ) {
@@ -175,6 +194,52 @@ class ReAtrium_AI_Gateway {
 	 */
 	public static function can_agent_execute_ability( string $agent_slug, string $ability_name ): bool {
 		return (bool) apply_filters( 'reatrium_can_agent_execute_ability', true, $agent_slug, $ability_name );
+	}
+
+	/**
+	 * Generate an embedding vector for text via a pluggable embedding provider
+	 * (e.g. AIGIS v2, OpenAI, Ollama, Gemini) hooked to `reatrium_generate_embedding`.
+	 *
+	 * Returns [ 'vector' => float[], 'model' => string ] — vector is empty when
+	 * no external embedding provider is configured (MySQL store falls back to lexical scoring).
+	 *
+	 * @param string $text    Input text to embed.
+	 * @param array  $options Optional provider/context hints.
+	 * @return array{vector: float[], model: string}
+	 */
+	public static function embed( string $text, array $options = [] ): array {
+		$text = trim( $text );
+		if ( $text === '' ) {
+			return [ 'vector' => [], 'model' => '' ];
+		}
+
+		/**
+		 * Filter to provide dense vector embeddings for Knowledge Base RAG.
+		 *
+		 * Return either a float[] vector or [ 'vector' => float[], 'model' => string ].
+		 *
+		 * @param mixed  $result  Null by default.
+		 * @param string $text    Text chunk or query.
+		 * @param array  $options Context options.
+		 */
+		$result = apply_filters( 'reatrium_generate_embedding', null, $text, $options );
+
+		if ( is_array( $result ) ) {
+			if ( isset( $result['vector'] ) && is_array( $result['vector'] ) ) {
+				return [
+					'vector' => array_values( array_map( 'floatval', $result['vector'] ) ),
+					'model'  => sanitize_text_field( (string) ( $result['model'] ?? '' ) ),
+				];
+			}
+			if ( ! empty( $result ) && is_numeric( reset( $result ) ) ) {
+				return [
+					'vector' => array_values( array_map( 'floatval', $result ) ),
+					'model'  => sanitize_text_field( (string) ( $options['model'] ?? 'custom' ) ),
+				];
+			}
+		}
+
+		return [ 'vector' => [], 'model' => '' ];
 	}
 
 	/**

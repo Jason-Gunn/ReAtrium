@@ -54,6 +54,7 @@ class ReAtrium_Activator {
 		}
 		if ( false === get_option( 'reatrium_modules' ) ) {
 			add_option( 'reatrium_modules', [
+				'assistant'      => true,
 				'knowledge_base' => true,
 				'announcements'  => true,
 				'directory'      => true,
