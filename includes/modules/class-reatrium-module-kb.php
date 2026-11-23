@@ -416,23 +416,41 @@ class ReAtrium_Module_KB extends ReAtrium_Abstract_Module {
 			] );
 		}
 
+		$sop_title_in = '';
 		if ( isset( $_POST['reatrium_draft_sop'] ) && check_admin_referer( 'reatrium_draft_sop_nonce' ) && current_user_can( 'edit_posts' ) ) {
-			$sop_title  = sanitize_text_field( wp_unslash( $_POST['sop_title'] ?? '' ) );
-			$sop_notes  = sanitize_textarea_field( wp_unslash( $_POST['sop_notes'] ?? '' ) );
-			$sop_result = $this->execute_draft_sop( [
-				'title' => $sop_title,
+			$sop_title_in = sanitize_text_field( wp_unslash( $_POST['sop_title'] ?? '' ) );
+			$sop_notes    = sanitize_textarea_field( wp_unslash( $_POST['sop_notes'] ?? '' ) );
+			$sop_result   = $this->execute_draft_sop( [
+				'title' => $sop_title_in,
 				'notes' => $sop_notes,
 			] );
 		}
 
-		$articles    = get_posts( [
+		$browse_dept = sanitize_text_field( wp_unslash( $_GET['dept'] ?? '' ) );
+		$browse_q    = sanitize_text_field( wp_unslash( $_GET['q'] ?? '' ) );
+
+		$article_args = [
 			'post_type'               => 'reatrium_kb',
 			'post_status'             => 'publish',
-			'posts_per_page'          => 30,
+			'posts_per_page'          => 50,
 			'orderby'                 => 'title',
 			'order'                   => 'ASC',
 			'reatrium_internal_query' => true,
-		] );
+		];
+		if ( $browse_dept !== '' ) {
+			$article_args['tax_query'] = [
+				[
+					'taxonomy' => 'reatrium_department',
+					'field'    => 'name',
+					'terms'    => $browse_dept,
+				],
+			];
+		}
+		if ( $browse_q !== '' ) {
+			$article_args['s'] = $browse_q;
+		}
+
+		$articles    = get_posts( $article_args );
 		$departments = (array) get_option( 'reatrium_departments', [ 'General' ] );
 		?>
 		<?php if ( $created_msg !== '' ) : ?>
@@ -495,6 +513,21 @@ class ReAtrium_Module_KB extends ReAtrium_Abstract_Module {
 				<?php if ( is_array( $sop_result ) ) : ?>
 					<div class="reatrium-ai-box" style="margin-top:14px;">
 						<?php echo wp_kses_post( wpautop( esc_html( $sop_result['draft'] ) ) ); ?>
+						<?php if ( ! empty( $sop_result['ok'] ) && current_user_can( 'publish_posts' ) ) : ?>
+							<form method="post" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+								<?php wp_nonce_field( 'reatrium_add_kb_nonce' ); ?>
+								<input type="hidden" name="kb_title" value="<?php echo esc_attr( $sop_title_in ); ?>">
+								<input type="hidden" name="kb_content" value="<?php echo esc_attr( $sop_result['draft'] ); ?>">
+								<select name="kb_department" style="padding:6px 10px;border:1px solid var(--ra-border);border-radius:8px;font-size:13px;">
+									<?php foreach ( $departments as $dept ) : ?>
+										<option value="<?php echo esc_attr( $dept ); ?>"><?php echo esc_html( $dept ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<button type="submit" name="reatrium_add_kb" value="1" class="reatrium-btn reatrium-btn-primary">
+									<?php esc_html_e( 'Publish Draft to Handbook', 'reatrium' ); ?>
+								</button>
+							</form>
+						<?php endif; ?>
 					</div>
 				<?php endif; ?>
 			</details>
@@ -529,19 +562,62 @@ class ReAtrium_Module_KB extends ReAtrium_Abstract_Module {
 		<?php endif; ?>
 
 		<div class="reatrium-card">
-			<h2><?php esc_html_e( 'All Handbook Articles & SOPs', 'reatrium' ); ?></h2>
+			<div class="reatrium-card-header">
+				<h2 style="margin:0;"><?php esc_html_e( 'All Handbook Articles & SOPs', 'reatrium' ); ?></h2>
+				<form method="get" action="<?php echo esc_url( ReAtrium_Portal::portal_url( 'handbook' ) ); ?>" style="display:flex;gap:6px;">
+					<?php if ( get_option( 'permalink_structure' ) === '' ) : ?>
+						<input type="hidden" name="reatrium_portal" value="1">
+						<input type="hidden" name="reatrium_view" value="handbook">
+					<?php endif; ?>
+					<?php if ( $browse_dept !== '' ) : ?>
+						<input type="hidden" name="dept" value="<?php echo esc_attr( $browse_dept ); ?>">
+					<?php endif; ?>
+					<input type="text" name="q" value="<?php echo esc_attr( $browse_q ); ?>" placeholder="<?php esc_attr_e( 'Filter articles…', 'reatrium' ); ?>" style="padding:6px 10px;border:1px solid var(--ra-border);border-radius:8px;font-size:13px;">
+					<button type="submit" class="reatrium-btn"><?php esc_html_e( 'Filter', 'reatrium' ); ?></button>
+				</form>
+			</div>
+
+			<div class="reatrium-pills" style="margin-top:10px;">
+				<a href="<?php echo esc_url( ReAtrium_Portal::portal_url( 'handbook' ) ); ?>" class="reatrium-pill <?php echo $browse_dept === '' ? 'is-active' : ''; ?>">
+					<?php esc_html_e( 'All Departments', 'reatrium' ); ?>
+				</a>
+				<?php foreach ( $departments as $dept ) : ?>
+					<a href="<?php echo esc_url( add_query_arg( 'dept', $dept, ReAtrium_Portal::portal_url( 'handbook' ) ) ); ?>" class="reatrium-pill <?php echo $browse_dept === $dept ? 'is-active' : ''; ?>">
+						<?php echo esc_html( $dept ); ?>
+					</a>
+				<?php endforeach; ?>
+			</div>
+
 			<?php if ( empty( $articles ) ) : ?>
-				<p class="reatrium-muted"><?php esc_html_e( 'No handbook articles yet.', 'reatrium' ); ?></p>
+				<p class="reatrium-muted"><?php esc_html_e( 'No handbook articles match this filter.', 'reatrium' ); ?></p>
 			<?php else : ?>
 				<?php foreach ( $articles as $doc ) : ?>
 					<?php $terms = wp_get_post_terms( $doc->ID, 'reatrium_department', [ 'fields' => 'names' ] ); ?>
-					<div class="reatrium-list-item">
-						<div class="reatrium-card-header">
-							<strong><?php echo esc_html( $doc->post_title ); ?></strong>
-							<span class="reatrium-badge is-ok"><?php echo esc_html( ! empty( $terms ) && is_array( $terms ) ? $terms[0] : 'General' ); ?></span>
+					<details class="reatrium-list-item">
+						<summary style="cursor:pointer;list-style:none;">
+							<div class="reatrium-card-header" style="margin-bottom:4px;">
+								<strong><?php echo esc_html( $doc->post_title ); ?></strong>
+								<span class="reatrium-badge is-ok"><?php echo esc_html( ! empty( $terms ) && is_array( $terms ) ? $terms[0] : 'General' ); ?></span>
+							</div>
+							<p class="reatrium-muted" style="margin:0;"><?php echo esc_html( wp_trim_words( wp_strip_all_tags( $doc->post_content ), 30 ) ); ?> <span style="color:var(--ra-accent);font-weight:600;"><?php esc_html_e( 'Read full SOP →', 'reatrium' ); ?></span></p>
+						</summary>
+						<div style="margin-top:12px;padding:14px 16px;background:var(--ra-bg);border-radius:8px;font-size:14px;">
+							<?php echo wp_kses_post( wpautop( $doc->post_content ) ); ?>
+							<div class="reatrium-muted" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--ra-border);">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: post ID, 2: updated date, 3: author */
+										__( 'Doc #%1$d · Updated %2$s · %3$s', 'reatrium' ),
+										$doc->ID,
+										get_the_modified_date( '', $doc ),
+										get_the_author_meta( 'display_name', (int) $doc->post_author )
+									)
+								);
+								?>
+							</div>
 						</div>
-						<p class="reatrium-muted"><?php echo esc_html( wp_trim_words( wp_strip_all_tags( $doc->post_content ), 35 ) ); ?></p>
-					</div>
+					</details>
 				<?php endforeach; ?>
 			<?php endif; ?>
 		</div>

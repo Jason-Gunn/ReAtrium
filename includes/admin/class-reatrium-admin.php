@@ -105,46 +105,13 @@ class ReAtrium_Admin {
 			$this->maybe_sync_aigis_agents( true );
 
 			if ( ! empty( $_POST['seed_sample_data'] ) ) {
-				$this->seed_sample_data( $modules );
+				ReAtrium_Sample_Data::seed();
 			}
 
 			$saved = true;
 		}
 
 		include REATRIUM_PLUGIN_DIR . 'includes/admin/views/setup-wizard.php';
-	}
-
-	private function seed_sample_data( array $modules = [] ): void {
-		if ( ! empty( $modules['announcements'] ) && ! get_posts( [ 'post_type' => 'reatrium_announce', 'posts_per_page' => 1, 'reatrium_internal_query' => true ] ) ) {
-			wp_insert_post( [
-				'post_type'    => 'reatrium_announce',
-				'post_status'  => 'publish',
-				'post_title'   => __( 'Welcome to ReAtrium!', 'reatrium' ),
-				'post_content' => __( 'Our new company intranet is live. Use the Handbook tab to search SOPs, or submit IT/HR requests anytime.', 'reatrium' ),
-				'post_author'  => get_current_user_id(),
-			] );
-		}
-
-		if ( ! empty( $modules['knowledge_base'] ) && ! get_posts( [ 'post_type' => 'reatrium_kb', 'posts_per_page' => 1, 'reatrium_internal_query' => true ] ) ) {
-			if ( ! taxonomy_exists( 'reatrium_department' ) ) {
-				( new ReAtrium_Module_KB() )->register_cpt_and_taxonomy();
-			}
-
-			$kb_id = wp_insert_post( [
-				'post_type'    => 'reatrium_kb',
-				'post_status'  => 'publish',
-				'post_title'   => __( 'PTO & Holiday Policy', 'reatrium' ),
-				'post_content' => __( 'Full-time employees receive 15 days of paid time off per year plus company holidays. Submit PTO requests at least 2 weeks in advance.', 'reatrium' ),
-				'post_author'  => get_current_user_id(),
-			] );
-			if ( $kb_id && ! is_wp_error( $kb_id ) ) {
-				wp_set_object_terms( $kb_id, 'HR', 'reatrium_department' );
-				$kb_post = get_post( $kb_id );
-				if ( $kb_post instanceof WP_Post ) {
-					( new ReAtrium_Module_KB() )->index_kb_post( $kb_id, $kb_post );
-				}
-			}
-		}
 	}
 
 	public function render_settings(): void {
@@ -157,6 +124,33 @@ class ReAtrium_Admin {
 		$notice     = '';
 
 		if ( current_user_can( 'manage_options' ) ) {
+			// Seed or Wipe Demo / Sample Data.
+			if ( isset( $_POST['reatrium_sample_action'] ) && check_admin_referer( 'reatrium_sample_data_nonce' ) ) {
+				$sample_action = sanitize_key( wp_unslash( $_POST['reatrium_sample_action'] ) );
+				if ( $sample_action === 'seed' ) {
+					$res    = ReAtrium_Sample_Data::seed();
+					$notice = sprintf(
+						/* translators: 1: users, 2: announcements, 3: kb, 4: requests */
+						__( 'Sample data generated: %1$d team members, %2$d announcements, %3$d handbook SOPs, and %4$d requests.', 'reatrium' ),
+						$res['users'],
+						$res['announcements'],
+						$res['kb'],
+						$res['requests']
+					);
+				} elseif ( $sample_action === 'wipe' ) {
+					$res    = ReAtrium_Sample_Data::wipe();
+					$notice = sprintf(
+						/* translators: 1: users, 2: announcements, 3: kb, 4: requests */
+						__( 'Sample data wiped: %1$d team members, %2$d announcements, %3$d handbook SOPs, and %4$d requests removed.', 'reatrium' ),
+						$res['users'],
+						$res['announcements'],
+						$res['kb'],
+						$res['requests']
+					);
+				}
+				$active_tab = 'overview';
+			}
+
 			// Save Modules tab.
 			if ( isset( $_POST['reatrium_save_modules'] ) && check_admin_referer( 'reatrium_settings_modules_nonce' ) ) {
 				$posted = isset( $_POST['reatrium_modules'] ) && is_array( $_POST['reatrium_modules'] )

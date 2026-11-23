@@ -157,6 +157,49 @@ body.reatrium-body {
 
 .reatrium-badge.is-ok { background: var(--ra-ok-bg); color: var(--ra-ok-fg); }
 .reatrium-badge.is-warn { background: var(--ra-warn-bg); color: var(--ra-warn-fg); }
+.reatrium-badge.is-danger { background: #fee2e2; color: #991b1b; }
+.reatrium-badge.is-neutral { background: var(--ra-bg); color: var(--ra-muted); }
+
+.reatrium-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.reatrium-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	border-radius: 999px;
+	border: 1px solid var(--ra-border);
+	background: var(--ra-surface);
+	color: var(--ra-text);
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.reatrium-pill:hover { background: var(--ra-bg); }
+.reatrium-pill.is-active {
+	background: var(--ra-accent-soft);
+	border-color: var(--ra-accent);
+	color: var(--ra-accent);
+	font-weight: 600;
+}
+
+.reatrium-person-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.reatrium-person-head img {
+	border-radius: 999px;
+	flex-shrink: 0;
+}
 
 .reatrium-content {
 	padding: 28px;

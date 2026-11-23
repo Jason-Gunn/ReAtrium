@@ -108,6 +108,42 @@ if ( ! isset( $tabs[ $active_tab ] ) ) {
 			</div>
 		</div>
 
+		<?php if ( $is_admin ) : ?>
+			<?php $sample_stats = ReAtrium_Sample_Data::stats(); ?>
+			<div class="card" style="max-width:960px;padding:16px 20px;margin-top:16px;">
+				<h2 style="margin-top:0;"><?php esc_html_e( 'Demo & Sample Data (Testing)', 'reatrium' ); ?></h2>
+				<p class="description" style="margin-top:0;">
+					<?php esc_html_e( 'Populate realistic demo team members, pinned announcements, department SOPs, and helpdesk requests to test portal and AI features. All sample items are tagged so wiping them never affects your real company content or users.', 'reatrium' ); ?>
+				</p>
+				<p style="margin:10px 0;">
+					<strong><?php esc_html_e( 'Currently installed sample data:', 'reatrium' ); ?></strong>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: users, 2: announcements, 3: kb, 4: requests */
+							__( '%1$d demo users · %2$d announcements · %3$d handbook SOPs · %4$d requests', 'reatrium' ),
+							$sample_stats['users'],
+							$sample_stats['announcements'],
+							$sample_stats['kb'],
+							$sample_stats['requests']
+						)
+					);
+					?>
+				</p>
+				<form method="post" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+					<?php wp_nonce_field( 'reatrium_sample_data_nonce' ); ?>
+					<button type="submit" name="reatrium_sample_action" value="seed" class="button button-secondary">
+						<?php esc_html_e( 'Generate Sample Data', 'reatrium' ); ?>
+					</button>
+					<?php if ( $sample_stats['total'] > 0 ) : ?>
+						<button type="submit" name="reatrium_sample_action" value="wipe" class="button button-link-delete" onclick="return confirm('<?php echo esc_js( __( 'Delete all tagged ReAtrium sample users and demo posts? Real content and users will not be touched.', 'reatrium' ) ); ?>');">
+							<?php esc_html_e( 'Wipe All Sample Data', 'reatrium' ); ?>
+						</button>
+					<?php endif; ?>
+				</form>
+			</div>
+		<?php endif; ?>
+
 	<?php elseif ( $active_tab === 'modules' && $is_admin ) : ?>
 		<form method="post" style="max-width:960px;">
 			<?php wp_nonce_field( 'reatrium_settings_modules_nonce' ); ?>

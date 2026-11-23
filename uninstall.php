@@ -57,7 +57,7 @@ if ( ! empty( $term_rows ) ) {
 }
 
 // 4. Delete all ReAtrium user meta across all users.
-foreach ( [ 'reatrium_department', 'reatrium_job_title', 'reatrium_skills' ] as $meta_key ) {
+foreach ( [ 'reatrium_department', 'reatrium_job_title', 'reatrium_skills', 'reatrium_location', 'reatrium_is_sample' ] as $meta_key ) {
 	delete_metadata( 'user', 0, $meta_key, '', true );
 }
 

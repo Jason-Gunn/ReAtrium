@@ -93,7 +93,7 @@ $logotype_url = REATRIUM_PLUGIN_URL . 'assets/img/reatrium-logotype-lm.svg';
 			<tr>
 				<th><?php esc_html_e( 'Starter Content', 'reatrium' ); ?></th>
 				<td>
-					<label><input type="checkbox" name="seed_sample_data" value="1" <?php checked( ! get_option( 'reatrium_setup_completed' ) ); ?>> <?php esc_html_e( 'Seed a sample welcome announcement and PTO handbook article', 'reatrium' ); ?></label>
+					<label><input type="checkbox" name="seed_sample_data" value="1" <?php checked( ! get_option( 'reatrium_setup_completed' ) ); ?>> <?php esc_html_e( 'Seed demo team members, announcements, handbook SOPs, and sample requests (can be wiped anytime in Settings → Overview)', 'reatrium' ); ?></label>
 				</td>
 			</tr>
 		</table>

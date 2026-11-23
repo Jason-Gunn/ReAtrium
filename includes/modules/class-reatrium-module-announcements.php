@@ -175,7 +175,7 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 	}
 
 	/**
-	 * Handle quick announcement creation before HTML output (POST-Redirect-GET).
+	 * Handle quick announcement creation, pin toggle, acknowledge, and delete before HTML output.
 	 */
 	public function handle_portal_post( string $current_view ): void {
 		if ( $current_view !== 'home' ) {
@@ -185,6 +185,7 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 		if ( isset( $_POST['reatrium_post_announce'] ) && check_admin_referer( 'reatrium_announce_nonce' ) && current_user_can( 'publish_posts' ) ) {
 			$title   = sanitize_text_field( wp_unslash( $_POST['announce_title'] ?? '' ) );
 			$content = wp_kses_post( wp_unslash( $_POST['announce_content'] ?? '' ) );
+			$dept    = sanitize_text_field( wp_unslash( $_POST['announce_dept'] ?? 'All Company' ) );
 			$pinned  = ! empty( $_POST['announce_pinned'] ) ? '1' : '0';
 
 			if ( $title !== '' && $content !== '' ) {
@@ -197,9 +198,42 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 				] );
 				if ( $post_id && ! is_wp_error( $post_id ) ) {
 					update_post_meta( $post_id, '_reatrium_pinned', $pinned );
+					update_post_meta( $post_id, '_reatrium_announce_dept', $dept ?: 'All Company' );
 					wp_safe_redirect( add_query_arg( 'reatrium_notice', 'announce_published', ReAtrium_Portal::portal_url( 'home' ) ) );
 					exit;
 				}
+			}
+		}
+
+		// Employee read-acknowledgement toggle.
+		if ( isset( $_POST['reatrium_ack_announce'] ) && check_admin_referer( 'reatrium_announce_action_nonce' ) ) {
+			$post_id = absint( $_POST['announce_id'] ?? 0 );
+			if ( $post_id > 0 && get_post_type( $post_id ) === 'reatrium_announce' ) {
+				$acks = (array) get_post_meta( $post_id, '_reatrium_ack_users', true );
+				$acks = array_values( array_filter( array_map( 'intval', $acks ) ) );
+				$uid  = get_current_user_id();
+				if ( ! in_array( $uid, $acks, true ) ) {
+					$acks[] = $uid;
+					update_post_meta( $post_id, '_reatrium_ack_users', $acks );
+				}
+				wp_safe_redirect( ReAtrium_Portal::portal_url( 'home' ) );
+				exit;
+			}
+		}
+
+		// Editor pin/unpin or delete.
+		if ( isset( $_POST['reatrium_manage_announce'] ) && check_admin_referer( 'reatrium_announce_action_nonce' ) && current_user_can( 'edit_others_posts' ) ) {
+			$post_id = absint( $_POST['announce_id'] ?? 0 );
+			$action  = sanitize_key( wp_unslash( $_POST['reatrium_manage_announce'] ) );
+			if ( $post_id > 0 && get_post_type( $post_id ) === 'reatrium_announce' ) {
+				if ( $action === 'toggle_pin' ) {
+					$current = get_post_meta( $post_id, '_reatrium_pinned', true ) === '1';
+					update_post_meta( $post_id, '_reatrium_pinned', $current ? '0' : '1' );
+				} elseif ( $action === 'delete' ) {
+					wp_trash_post( $post_id );
+				}
+				wp_safe_redirect( ReAtrium_Portal::portal_url( 'home' ) );
+				exit;
 			}
 		}
 	}
@@ -208,39 +242,57 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 		$digest_result = null;
 		$notice_key    = sanitize_key( wp_unslash( $_GET['reatrium_notice'] ?? '' ) );
 		$posted_notice = $notice_key === 'announce_published' ? __( 'Announcement published.', 'reatrium' ) : '';
+		$filter_dept   = sanitize_text_field( wp_unslash( $_GET['dept'] ?? '' ) );
+		$departments   = array_merge( [ 'All Company' ], (array) get_option( 'reatrium_departments', [ 'General', 'Operations', 'IT', 'HR', 'Sales' ] ) );
 
 		// Handle "Catch Me Up" AI Digest request.
 		if ( isset( $_POST['reatrium_catch_me_up'] ) && check_admin_referer( 'reatrium_digest_nonce' ) ) {
 			$digest_result = $this->execute_summarize_updates( [ 'days' => 14 ] );
 		}
 
+		$base_meta = [];
+		if ( $filter_dept !== '' ) {
+			$base_meta[] = [
+				'key'   => '_reatrium_announce_dept',
+				'value' => $filter_dept,
+			];
+		}
+
 		// Fetch pinned announcements first, then fill up to 20 with recent unpinned posts.
+		$pinned_meta   = $base_meta;
+		$pinned_meta[] = [
+			'key'   => '_reatrium_pinned',
+			'value' => '1',
+		];
+
 		$pinned_posts = get_posts( [
 			'post_type'               => 'reatrium_announce',
 			'post_status'             => 'publish',
 			'posts_per_page'          => 20,
 			'orderby'                 => 'date',
 			'order'                   => 'DESC',
-			'meta_key'                => '_reatrium_pinned',
-			'meta_value'              => '1',
+			'meta_query'              => $pinned_meta,
 			'reatrium_internal_query' => true,
 		] );
 
 		$pinned_ids = wp_list_pluck( $pinned_posts, 'ID' );
 		$remaining  = max( 0, 20 - count( $pinned_posts ) );
-		$other      = $remaining > 0
-			? get_posts( [
-				'post_type'               => 'reatrium_announce',
-				'post_status'             => 'publish',
-				'posts_per_page'          => $remaining,
-				'orderby'                 => 'date',
-				'order'                   => 'DESC',
-				'post__not_in'            => $pinned_ids,
-				'reatrium_internal_query' => true,
-			] )
-			: [];
+		$other_args = [
+			'post_type'               => 'reatrium_announce',
+			'post_status'             => 'publish',
+			'posts_per_page'          => $remaining,
+			'orderby'                 => 'date',
+			'order'                   => 'DESC',
+			'post__not_in'            => $pinned_ids,
+			'reatrium_internal_query' => true,
+		];
+		if ( ! empty( $base_meta ) ) {
+			$other_args['meta_query'] = $base_meta;
+		}
 
+		$other         = $remaining > 0 ? get_posts( $other_args ) : [];
 		$announcements = array_merge( $pinned_posts, $other );
+		$current_uid   = get_current_user_id();
 		?>
 		<?php if ( $posted_notice !== '' ) : ?>
 			<div class="reatrium-alert is-ok"><?php echo esc_html( $posted_notice ); ?></div>
@@ -277,11 +329,19 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 						<input type="text" name="announce_title" required>
 					</div>
 					<div class="reatrium-field">
+						<label><?php esc_html_e( 'Audience / Department', 'reatrium' ); ?></label>
+						<select name="announce_dept">
+							<?php foreach ( array_unique( $departments ) as $dept ) : ?>
+								<option value="<?php echo esc_attr( $dept ); ?>"><?php echo esc_html( $dept ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div class="reatrium-field">
 						<label><?php esc_html_e( 'Message', 'reatrium' ); ?></label>
 						<textarea name="announce_content" rows="3" required></textarea>
 					</div>
 					<label style="display:inline-flex;gap:6px;align-items:center;margin-bottom:12px;">
-						<input type="checkbox" name="announce_pinned" value="1"> <?php esc_html_e( 'Pin to top', 'reatrium' ); ?>
+						<input type="checkbox" name="announce_pinned" value="1"> <?php esc_html_e( 'Pin to top (enables read acknowledgement)', 'reatrium' ); ?>
 					</label><br>
 					<button type="submit" name="reatrium_post_announce" value="1" class="reatrium-btn reatrium-btn-primary">
 						<?php esc_html_e( 'Publish Announcement', 'reatrium' ); ?>
@@ -290,24 +350,76 @@ class ReAtrium_Module_Announcements extends ReAtrium_Abstract_Module {
 			</details>
 		<?php endif; ?>
 
+		<div class="reatrium-pills">
+			<a href="<?php echo esc_url( ReAtrium_Portal::portal_url( 'home' ) ); ?>" class="reatrium-pill <?php echo $filter_dept === '' ? 'is-active' : ''; ?>">
+				<?php esc_html_e( 'All Updates', 'reatrium' ); ?>
+			</a>
+			<?php foreach ( array_unique( $departments ) as $dept ) : ?>
+				<a href="<?php echo esc_url( add_query_arg( 'dept', $dept, ReAtrium_Portal::portal_url( 'home' ) ) ); ?>" class="reatrium-pill <?php echo $filter_dept === $dept ? 'is-active' : ''; ?>">
+					<?php echo esc_html( $dept ); ?>
+				</a>
+			<?php endforeach; ?>
+		</div>
+
 		<?php if ( empty( $announcements ) ) : ?>
 			<div class="reatrium-card">
-				<p class="reatrium-muted"><?php esc_html_e( 'No announcements yet. Post your first company update above.', 'reatrium' ); ?></p>
+				<p class="reatrium-muted"><?php esc_html_e( 'No announcements found for this filter.', 'reatrium' ); ?></p>
 			</div>
 		<?php else : ?>
 			<?php foreach ( $announcements as $item ) : ?>
-				<?php $is_pinned = get_post_meta( $item->ID, '_reatrium_pinned', true ) === '1'; ?>
+				<?php
+				$is_pinned = get_post_meta( $item->ID, '_reatrium_pinned', true ) === '1';
+				$dept      = (string) get_post_meta( $item->ID, '_reatrium_announce_dept', true ) ?: 'All Company';
+				$acks      = array_values( array_filter( array_map( 'intval', (array) get_post_meta( $item->ID, '_reatrium_ack_users', true ) ) ) );
+				$user_ack  = in_array( $current_uid, $acks, true );
+				?>
 				<article class="reatrium-card">
 					<div class="reatrium-card-header">
-						<h3>
+						<h3 style="margin:0;">
 							<?php if ( $is_pinned ) : ?>
 								<span class="reatrium-badge is-ok"><?php esc_html_e( 'Pinned', 'reatrium' ); ?></span>
 							<?php endif; ?>
+							<span class="reatrium-badge is-neutral"><?php echo esc_html( $dept ); ?></span>
 							<?php echo esc_html( $item->post_title ); ?>
 						</h3>
 						<span class="reatrium-muted"><?php echo esc_html( get_the_date( '', $item ) ); ?> · <?php echo esc_html( get_the_author_meta( 'display_name', (int) $item->post_author ) ); ?></span>
 					</div>
 					<div><?php echo wp_kses_post( wpautop( $item->post_content ) ); ?></div>
+					<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--ra-border);">
+						<div style="display:flex;align-items:center;gap:10px;">
+							<?php if ( $is_pinned ) : ?>
+								<?php if ( $user_ack ) : ?>
+									<span class="reatrium-badge is-ok">✓ <?php esc_html_e( 'Acknowledged', 'reatrium' ); ?></span>
+								<?php else : ?>
+									<form method="post" style="margin:0;">
+										<?php wp_nonce_field( 'reatrium_announce_action_nonce' ); ?>
+										<input type="hidden" name="announce_id" value="<?php echo esc_attr( $item->ID ); ?>">
+										<button type="submit" name="reatrium_ack_announce" value="1" class="reatrium-btn" style="padding:4px 10px;font-size:12px;">
+											✓ <?php esc_html_e( 'Acknowledge', 'reatrium' ); ?>
+										</button>
+									</form>
+								<?php endif; ?>
+								<span class="reatrium-muted">
+									<?php
+									/* translators: %d: number of acknowledgements */
+									echo esc_html( sprintf( _n( '%d team member acknowledged', '%d team members acknowledged', count( $acks ), 'reatrium' ), count( $acks ) ) );
+									?>
+								</span>
+							<?php endif; ?>
+						</div>
+						<?php if ( current_user_can( 'edit_others_posts' ) ) : ?>
+							<form method="post" style="display:flex;gap:6px;margin:0;">
+								<?php wp_nonce_field( 'reatrium_announce_action_nonce' ); ?>
+								<input type="hidden" name="announce_id" value="<?php echo esc_attr( $item->ID ); ?>">
+								<button type="submit" name="reatrium_manage_announce" value="toggle_pin" class="reatrium-btn" style="padding:4px 10px;font-size:12px;">
+									<?php echo $is_pinned ? esc_html__( 'Unpin', 'reatrium' ) : esc_html__( 'Pin', 'reatrium' ); ?>
+								</button>
+								<button type="submit" name="reatrium_manage_announce" value="delete" class="reatrium-btn" style="padding:4px 10px;font-size:12px;color:#991b1b;" onclick="return confirm('<?php echo esc_js( __( 'Move this announcement to Trash?', 'reatrium' ) ); ?>');">
+									<?php esc_html_e( 'Delete', 'reatrium' ); ?>
+								</button>
+							</form>
+						<?php endif; ?>
+					</div>
 				</article>
 			<?php endforeach; ?>
 		<?php endif; ?>

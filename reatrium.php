@@ -39,6 +39,7 @@ function reatrium_load_dependencies(): void {
 	require_once REATRIUM_PLUGIN_DIR . 'includes/core/interface-reatrium-module.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-abstract-module.php';
 	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-module-registry.php';
+	require_once REATRIUM_PLUGIN_DIR . 'includes/core/class-reatrium-sample-data.php';
 
 	// AI & Vector layer.
 	require_once REATRIUM_PLUGIN_DIR . 'includes/ai/interface-reatrium-vector-store.php';
