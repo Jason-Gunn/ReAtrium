@@ -30,8 +30,12 @@ $accent_color = sanitize_hex_color( (string) get_option( 'reatrium_accent_color'
 	<?php if ( strtolower( $accent_color ) !== '#e8420a' ) : ?>
 		<style>:root { --ra-accent: <?php echo esc_html( $accent_color ); ?>; --ra-accent-soft: color-mix(in srgb, <?php echo esc_html( $accent_color ); ?> 10%, #ffffff); }</style>
 	<?php endif; ?>
+	<?php do_action( 'reatrium_portal_head', $current_view ); ?>
 </head>
-<body class="reatrium-body">
+<?php
+$body_classes = (array) apply_filters( 'reatrium_portal_body_classes', [ 'reatrium-body' ], $current_view );
+?>
+<body class="<?php echo esc_attr( implode( ' ', array_map( 'sanitize_html_class', $body_classes ) ) ); ?>">
 	<div class="reatrium-shell">
 		<aside class="reatrium-sidebar">
 			<div class="reatrium-brand">
@@ -56,6 +60,8 @@ $accent_color = sanitize_hex_color( (string) get_option( 'reatrium_accent_color'
 					</a>
 				<?php endforeach; ?>
 			</nav>
+
+			<?php do_action( 'reatrium_portal_sidebar_after_nav', $current_view ); ?>
 
 			<div class="reatrium-sidebar-footer">
 				<a class="reatrium-footer-link" href="<?php echo esc_url( home_url( '/' ) ); ?>">
@@ -87,6 +93,7 @@ $accent_color = sanitize_hex_color( (string) get_option( 'reatrium_accent_color'
 			</header>
 
 			<section class="reatrium-content">
+				<?php do_action( 'reatrium_portal_before_content', $current_view ); ?>
 				<?php
 				$callback = $views[ $current_view ]['callback'] ?? null;
 				if ( is_callable( $callback ) ) {
@@ -100,6 +107,7 @@ $accent_color = sanitize_hex_color( (string) get_option( 'reatrium_accent_color'
 					<?php
 				}
 				?>
+				<?php do_action( 'reatrium_portal_after_content', $current_view ); ?>
 			</section>
 		</main>
 	</div>
